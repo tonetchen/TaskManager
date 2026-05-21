@@ -1,0 +1,15 @@
+@import "./taskflow.css";
+
+html,
+body {
+  height: 100%;
+}
+
+body {
+  overflow: hidden;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
