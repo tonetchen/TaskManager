@@ -99,3 +99,16 @@ export function countSubtasksDone(task: Task): { done: number; total: number } {
 export function uiStatusOf(task: Task): UiStatus {
   return API_TO_UI_STATUS[task.status];
 }
+
+/** 列表视图：仅保留根任务，子任务挂到 subtasks（避免看板扁平数据在列表里多出一行） */
+export function normalizeListTasks(raw: Task[]): Task[] {
+  const hasFlatSubtasks = raw.some((t) => t.parent_id != null);
+  if (!hasFlatSubtasks) return raw;
+
+  return raw
+    .filter((t) => !t.parent_id)
+    .map((root) => ({
+      ...root,
+      subtasks: raw.filter((t) => t.parent_id === root.id),
+    }));
+}

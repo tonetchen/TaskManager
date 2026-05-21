@@ -7,7 +7,7 @@ import { hasPermission } from "@/lib/permissions";
 import { canTransition } from "@/lib/task-status";
 import { Task, TaskActivityLog, TaskPriority, TaskStatus, WorkspaceMember } from "@/lib/types";
 import { MemberRole } from "@/lib/types";
-import { UI_STATUS_MAP, UiStatus, uiStatusOf } from "@/lib/taskflow-utils";
+import { UI_STATUS_MAP, UiStatus, normalizeListTasks, uiStatusOf } from "@/lib/taskflow-utils";
 import { BatchBar } from "./BatchBar";
 import { FilterBar } from "./FilterBar";
 import { IconKanban, IconList, IconPlus } from "./icons";
@@ -23,6 +23,7 @@ export function TasksApp() {
   const role = (session?.user?.role ?? "observer") as MemberRole;
 
   const [tasks, setTasks] = useState<Task[]>([]);
+  const [tasksLoading, setTasksLoading] = useState(true);
   const [members, setMembers] = useState<WorkspaceMember[]>([]);
   const [view, setView] = useState<"list" | "kanban">("list");
   const [statusFilter, setStatusFilter] = useState<TaskStatus | "all">("all");
@@ -47,17 +48,25 @@ export function TasksApp() {
   const canChangeStatus = hasPermission(role, "task:change_status");
 
   const loadTasks = useCallback(async () => {
+    const isKanban = view === "kanban";
     const params = new URLSearchParams({
-      view: view === "kanban" ? "board" : "list",
+      view: isKanban ? "board" : "list",
       projectId: String(projectId),
     });
     if (statusFilter !== "all") params.set("status", statusFilter);
     if (priorityFilter !== "all") params.set("priority", priorityFilter);
     if (assigneeFilter !== "all") params.set("assigneeId", String(assigneeFilter));
 
-    const res = await fetch(`/api/tasks?${params}`);
-    const data = await res.json();
-    if (data.tasks) setTasks(data.tasks);
+    setTasksLoading(true);
+    try {
+      const res = await fetch(`/api/tasks?${params}`);
+      const data = await res.json();
+      if (data.tasks) {
+        setTasks(isKanban ? data.tasks : normalizeListTasks(data.tasks));
+      }
+    } finally {
+      setTasksLoading(false);
+    }
   }, [view, statusFilter, priorityFilter, assigneeFilter, projectId]);
 
   const loadMembers = useCallback(async () => {
@@ -87,7 +96,14 @@ export function TasksApp() {
     setStatusFilter("all");
     setPriorityFilter("all");
     setAssigneeFilter("all");
+    setTasks([]);
+    setTasksLoading(true);
   }, [projectId]);
+
+  useEffect(() => {
+    setTasks([]);
+    setTasksLoading(true);
+  }, [view]);
 
   async function openDetail(task: Task) {
     setDetailTask(task);
@@ -280,14 +296,18 @@ export function TasksApp() {
 
         <div className="content">
           <div className={`page${view === "list" ? " active" : ""}`} id="view-list">
-            {tasks.length === 0 ? (
+            {tasksLoading ? (
+              <div className="empty-state">
+                <div className="empty-state-text">加载中...</div>
+              </div>
+            ) : tasks.length === 0 ? (
               <div className="empty-state">
                 <div className="empty-state-icon">📋</div>
                 <div className="empty-state-text">暂无任务</div>
               </div>
             ) : (
               <TaskListView
-                tasks={tasks}
+                tasks={rootTasks}
                 selected={selected}
                 expanded={expanded}
                 onToggleSelect={(id) => {
@@ -307,14 +327,20 @@ export function TasksApp() {
             )}
           </div>
           <div className={`page${view === "kanban" ? " active" : ""}`} id="view-kanban">
-            <KanbanView
-              tasks={rootTasks}
-              onOpenDetail={openDetail}
-              onCreateInColumn={(s) => openCreate(s)}
-              onMoveTask={handleKanbanMove}
-              canCreate={canCreate}
-              canChangeStatus={canChangeStatus}
-            />
+            {tasksLoading ? (
+              <div className="empty-state">
+                <div className="empty-state-text">加载中...</div>
+              </div>
+            ) : (
+              <KanbanView
+                tasks={rootTasks}
+                onOpenDetail={openDetail}
+                onCreateInColumn={(s) => openCreate(s)}
+                onMoveTask={handleKanbanMove}
+                canCreate={canCreate}
+                canChangeStatus={canChangeStatus}
+              />
+            )}
           </div>
         </div>
       </div>
