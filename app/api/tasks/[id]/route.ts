@@ -4,7 +4,7 @@ import { isMockDataMode } from "@/lib/mock-mode";
 import { getMockStore } from "@/lib/mock-store";
 import {
   deleteTaskWithValidation,
-  getTaskById,
+  getTaskDetail,
   listActivityLogs,
   updateTaskWithValidation,
 } from "@/lib/services/task-service";
@@ -45,8 +45,8 @@ export async function GET(_request: NextRequest, { params }: RouteParams) {
       return NextResponse.json({ task, logs, mock: true });
     }
 
-    const task = await getTaskById(taskId);
-    if (!task || task.workspace_id !== ctx.workspaceId) {
+    const task = await getTaskDetail(taskId, ctx.workspaceId);
+    if (!task) {
       return jsonError("Task not found", 404, "NOT_FOUND");
     }
     const logs = await listActivityLogs(taskId);

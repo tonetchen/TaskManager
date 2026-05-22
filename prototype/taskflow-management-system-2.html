@@ -572,6 +572,22 @@ body{
 .perm-check{color:var(--success);font-weight:700}
 .perm-cross{color:var(--muted-light)}
 
+/* ── Add Subtask ── */
+.add-subtask-btn{
+  display:flex;align-items:center;gap:6px;
+  width:100%;padding:8px 10px;margin-top:6px;
+  border:1px dashed var(--border-med);
+  border-radius:var(--radius-sm);
+  background:transparent;
+  font-family:var(--font-body);font-size:12px;font-weight:500;
+  color:var(--muted);cursor:pointer;transition:all 0.15s;
+}
+.add-subtask-btn:hover{border-color:var(--accent);color:var(--accent);background:var(--accent-light)}
+.subtask-input-row{
+  display:flex;align-items:center;gap:6px;
+  margin-top:6px;
+}
+
 /* ── Scrollbar ── */
 ::-webkit-scrollbar{width:6px}
 ::-webkit-scrollbar-track{background:transparent}
@@ -921,6 +937,22 @@ body{
             <span class="status-badge status-progress" style="margin-left:auto;font-size:11px;padding:2px 8px"><span class="status-dot"></span>进行中</span>
           </div>
         </div>
+        <div id="add-subtask-area">
+          <button class="add-subtask-btn" id="add-subtask-btn" onclick="showSubtaskInput()">
+            <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 5v14m-7-7h14"/></svg>
+            添加子任务
+          </button>
+          <div class="subtask-input-row" id="subtask-input-row" style="display:none">
+            <input class="form-input" id="subtask-title-input" type="text" placeholder="输入子任务标题，按 Enter 创建" style="flex:1;font-size:13px;padding:6px 10px" onkeydown="if(event.key==='Enter')createSubtask();if(event.key==='Escape')hideSubtaskInput()">
+            <select class="form-select" id="subtask-priority-select" style="width:72px;font-size:12px;padding:6px 8px">
+              <option value="medium" selected>中</option>
+              <option value="high">高</option>
+              <option value="low">低</option>
+            </select>
+            <button class="btn btn-primary btn-sm" onclick="createSubtask()">创建</button>
+            <button class="btn-icon" style="width:28px;height:28px" onclick="hideSubtaskInput()"><svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M18 6L6 18M6 6l12 12"/></svg></button>
+          </div>
+        </div>
       </div>
 
       <div class="detail-section">
@@ -1164,12 +1196,35 @@ function renderKanban() {
 function openDetail(taskId) {
   const task = TASKS.find(t => t.id === taskId);
   if (!task) return;
+  currentDetailTaskId = taskId;
   document.getElementById('detail-id').textContent = task.id;
   document.getElementById('detail-title').textContent = task.title;
   document.getElementById('detail-desc').textContent = task.desc;
   document.querySelectorAll('.status-flow-step').forEach(s => {
     s.classList.toggle('current', s.dataset.status === task.status);
   });
+
+  const children = task.children || [];
+  const doneCount = children.filter(c => c.status === 'done').length;
+  const subtasksSection = document.getElementById('detail-subtasks-section');
+  const sectionTitle = subtasksSection.querySelector('.detail-section-title');
+  sectionTitle.innerHTML = '子任务 <span style="font-weight:400;text-transform:none;letter-spacing:0">(' + doneCount + '/' + children.length + ')</span>';
+
+  let subtaskHtml = '';
+  children.forEach(c => {
+    const isDone = c.status === 'done';
+    subtaskHtml += '<div class="detail-subtask-item">' +
+      '<div class="detail-subtask-check' + (isDone ? ' checked' : '') + '">' +
+      (isDone ? '<svg width="10" height="10" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5"/></svg>' : '') +
+      '</div>' +
+      '<span>' + c.title + '</span>' +
+      '<span class="status-badge ' + STATUS_CLASS[c.status] + '" style="margin-left:auto;font-size:11px;padding:2px 8px"><span class="status-dot"></span>' + STATUS_MAP[c.status] + '</span>' +
+      '</div>';
+  });
+  document.getElementById('detail-subtasks').innerHTML = subtaskHtml;
+
+  hideSubtaskInput();
+
   document.getElementById('detail-overlay').classList.add('open');
   document.getElementById('detail-panel').classList.add('open');
 }
@@ -1220,6 +1275,44 @@ function toggleExpand(taskId) {
   if (expandedTasks.has(taskId)) expandedTasks.delete(taskId);
   else expandedTasks.add(taskId);
   renderList();
+}
+
+let currentDetailTaskId = null;
+
+function showSubtaskInput() {
+  document.getElementById('add-subtask-btn').style.display = 'none';
+  document.getElementById('subtask-input-row').style.display = 'flex';
+  document.getElementById('subtask-title-input').value = '';
+  document.getElementById('subtask-title-input').focus();
+}
+function hideSubtaskInput() {
+  document.getElementById('add-subtask-btn').style.display = 'flex';
+  document.getElementById('subtask-input-row').style.display = 'none';
+}
+function createSubtask() {
+  const input = document.getElementById('subtask-title-input');
+  const title = input.value.trim();
+  if (!title || !currentDetailTaskId) return;
+  const parent = TASKS.find(t => t.id === currentDetailTaskId);
+  if (!parent) return;
+  if (!parent.children) parent.children = [];
+  if (parent.children.length >= 6) { alert('子任务最多支持 2 层，已达上限'); return; }
+  const priority = document.getElementById('subtask-priority-select').value;
+  const newId = parent.id + '-' + (parent.children.length + 1);
+  parent.children.push({
+    id: newId,
+    title: title,
+    status: 'todo',
+    priority: priority,
+    assignee: parent.assignee,
+    assigneeColor: parent.assigneeColor,
+    due: parent.due
+  });
+  openDetail(currentDetailTaskId);
+  renderList();
+  renderKanban();
+  input.value = '';
+  input.focus();
 }
 
 renderList();

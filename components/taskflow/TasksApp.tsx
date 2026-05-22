@@ -152,12 +152,17 @@ export function TasksApp() {
     setTasksLoading(true);
   }, [view]);
 
+  async function refreshDetail(taskId: number) {
+    const data = await api.getTask(taskId);
+    setDetailTask(data.task);
+    setDetailLogs(data.logs);
+    return data.task;
+  }
+
   async function openDetail(task: Task) {
     setDetailTask(task);
     setDetailOpen(true);
-    const data = await api.getTask(task.id);
-    setDetailTask(data.task);
-    setDetailLogs(data.logs);
+    await refreshDetail(task.id);
   }
 
   function closeDetail() {
@@ -201,9 +206,7 @@ export function TasksApp() {
     }
 
     if (detailTask && modalInitial?.id === detailTask.id) {
-      const data = await api.getTask(detailTask.id);
-      setDetailTask(data.task);
-      setDetailLogs(data.logs);
+      await refreshDetail(detailTask.id);
     }
 
     void loadTasks({ silent: true });
@@ -224,10 +227,32 @@ export function TasksApp() {
   async function handleStatusClick(status: UiStatus) {
     if (!detailTask || !canChangeStatus) return;
     const { task } = await api.updateTask(detailTask.id, { status: UI_STATUS_MAP[status] });
-    setDetailTask(task);
     upsertTaskInState(task);
-    const data = await api.getTask(detailTask.id);
-    setDetailLogs(data.logs);
+    await refreshDetail(detailTask.id);
+  }
+
+  async function handleCreateSubtask(title: string, priority: TaskPriority) {
+    if (!detailTask || detailTask.parent_id) return;
+    const { task } = await api.createTask({
+      title,
+      priority,
+      status: "todo",
+      parentId: detailTask.id,
+      projectId: detailTask.project_id ?? projectId,
+      assigneeId: detailTask.assignee_id,
+    });
+    upsertTaskInState(task);
+    await refreshDetail(detailTask.id);
+    void loadTasks({ silent: true });
+  }
+
+  async function handleToggleSubtaskDone(subtask: Task) {
+    if (!detailTask) return;
+    const newStatus: TaskStatus = subtask.status === "done" ? "todo" : "done";
+    const { task } = await api.updateTask(subtask.id, { status: newStatus });
+    upsertTaskInState(task);
+    await refreshDetail(detailTask.id);
+    void loadTasks({ silent: true });
   }
 
   async function handleBatchStatus(status: UiStatus) {
@@ -397,10 +422,14 @@ export function TasksApp() {
         open={detailOpen}
         canEdit={canUpdate}
         canDelete={canDelete}
+        canCreateSubtask={canCreate}
+        canToggleSubtask={canChangeStatus}
         onClose={closeDetail}
         onEdit={openEdit}
         onDelete={handleDelete}
         onStatusClick={handleStatusClick}
+        onCreateSubtask={handleCreateSubtask}
+        onToggleSubtaskDone={handleToggleSubtaskDone}
       />
 
       <TaskModal

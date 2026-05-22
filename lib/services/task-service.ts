@@ -36,6 +36,18 @@ export async function getTasksWithSubtasks(
   return withSubs;
 }
 
+export async function getTaskDetail(
+  taskId: number,
+  workspaceId: number
+): Promise<Task | null> {
+  const task = await getTaskById(taskId);
+  if (!task || task.workspace_id !== workspaceId) return null;
+  if (task.parent_id !== null) return task;
+
+  const subtasks = await listTasks(workspaceId, { parentId: taskId });
+  return { ...task, subtasks };
+}
+
 export async function createTaskWithValidation(
   workspaceId: number,
   userId: number,
@@ -82,7 +94,9 @@ export async function updateTaskWithValidation(
 
   if (input.status && input.status !== existing.status) {
     assertPermission(role, "task:change_status");
-    assertTransition(existing.status, input.status);
+    if (existing.parent_id === null) {
+      assertTransition(existing.status, input.status);
+    }
   }
 
   const normalizedInput = { ...input };

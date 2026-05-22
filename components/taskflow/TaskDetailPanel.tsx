@@ -1,6 +1,7 @@
 "use client";
 
-import { Task, TaskActivityLog } from "@/lib/types";
+import { useEffect, useState } from "react";
+import { Task, TaskActivityLog, TaskPriority } from "@/lib/types";
 import {
   API_TO_UI_STATUS,
   STATUS_LABELS,
@@ -11,7 +12,9 @@ import {
   uiStatusOf,
 } from "@/lib/taskflow-utils";
 import { Assignee, PriorityBadge, StatusBadge } from "./badges";
-import { IconClose, IconEdit, IconTrash } from "./icons";
+import { IconCheck, IconClose, IconEdit, IconPlus, IconTrash } from "./icons";
+
+const MAX_SUBTASKS = 6;
 
 export function TaskDetailPanel({
   task,
@@ -19,27 +22,73 @@ export function TaskDetailPanel({
   open,
   canEdit,
   canDelete,
+  canCreateSubtask,
+  canToggleSubtask,
   onClose,
   onEdit,
   onDelete,
   onStatusClick,
+  onCreateSubtask,
+  onToggleSubtaskDone,
 }: {
   task: Task | null;
   logs: TaskActivityLog[];
   open: boolean;
   canEdit: boolean;
   canDelete: boolean;
+  canCreateSubtask: boolean;
+  canToggleSubtask: boolean;
   onClose: () => void;
   onEdit: () => void;
   onDelete: () => void;
   onStatusClick: (status: UiStatus) => void;
+  onCreateSubtask: (title: string, priority: TaskPriority) => Promise<void>;
+  onToggleSubtaskDone: (subtask: Task) => Promise<void>;
 }) {
+  const [showSubtaskInput, setShowSubtaskInput] = useState(false);
+  const [subtaskTitle, setSubtaskTitle] = useState("");
+  const [subtaskPriority, setSubtaskPriority] = useState<TaskPriority>("medium");
+  const [subtaskLoading, setSubtaskLoading] = useState(false);
+  const [togglingId, setTogglingId] = useState<number | null>(null);
+
+  useEffect(() => {
+    if (!open) {
+      setShowSubtaskInput(false);
+      setSubtaskTitle("");
+      setSubtaskPriority("medium");
+    }
+  }, [open, task?.id]);
+
   if (!task) return null;
 
   const current = uiStatusOf(task);
   const subs = task.subtasks ?? [];
   const doneCount = subs.filter((s) => s.status === "done").length;
   const flowSteps: UiStatus[] = ["todo", "progress", "review", "done"];
+  const isRootTask = task.parent_id === null;
+
+  async function handleCreateSubtask() {
+    const title = subtaskTitle.trim();
+    if (!title || subtaskLoading) return;
+    setSubtaskLoading(true);
+    try {
+      await onCreateSubtask(title, subtaskPriority);
+      setSubtaskTitle("");
+      setShowSubtaskInput(false);
+    } finally {
+      setSubtaskLoading(false);
+    }
+  }
+
+  async function handleToggleSubtask(sub: Task) {
+    if (!canToggleSubtask || togglingId !== null) return;
+    setTogglingId(sub.id);
+    try {
+      await onToggleSubtaskDone(sub);
+    } finally {
+      setTogglingId(null);
+    }
+  }
 
   return (
     <>
@@ -122,7 +171,7 @@ export function TaskDetailPanel({
             </div>
           </div>
 
-          {subs.length > 0 && (
+          {isRootTask && (
             <div className="detail-section">
               <div className="detail-section-title">
                 子任务{" "}
@@ -131,28 +180,104 @@ export function TaskDetailPanel({
                 </span>
               </div>
               <div>
-                {subs.map((s) => (
-                  <div key={s.id} className="detail-subtask-item">
-                    <div
-                      className={`detail-subtask-check${s.status === "done" ? " checked" : ""}`}
-                    >
-                      {s.status === "done" && (
-                        <svg width="10" height="10" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
-                          <path d="M20 6L9 17l-5-5" />
-                        </svg>
-                      )}
+                {subs.map((s) => {
+                  const isDone = s.status === "done";
+                  return (
+                    <div key={s.id} className="detail-subtask-item">
+                      <div
+                        className={`detail-subtask-check${isDone ? " checked" : ""}${canToggleSubtask ? "" : " readonly"}`}
+                        role={canToggleSubtask ? "button" : undefined}
+                        tabIndex={canToggleSubtask ? 0 : undefined}
+                        aria-label={isDone ? "标记为未完成" : "标记为已完成"}
+                        onClick={() => void handleToggleSubtask(s)}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter" || e.key === " ") {
+                            e.preventDefault();
+                            void handleToggleSubtask(s);
+                          }
+                        }}
+                        style={{
+                          opacity: togglingId === s.id ? 0.5 : 1,
+                          cursor: canToggleSubtask ? "pointer" : "default",
+                        }}
+                      >
+                        {isDone && <IconCheck />}
+                      </div>
+                      <span>{s.title}</span>
+                      <span style={{ marginLeft: "auto", fontSize: 11 }}>
+                        <StatusBadge status={API_TO_UI_STATUS[s.status]} />
+                      </span>
                     </div>
-                    <span>{s.title}</span>
-                    <span
-                      className={`status-badge ${s.status === "todo" ? "status-todo" : s.status === "in_progress" ? "status-progress" : s.status === "in_review" ? "status-review" : "status-done"}`}
-                      style={{ marginLeft: "auto", fontSize: 11, padding: "2px 8px" }}
-                    >
-                      <span className="status-dot" />
-                      {STATUS_LABELS[API_TO_UI_STATUS[s.status]]}
-                    </span>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
+
+              {canCreateSubtask && subs.length < MAX_SUBTASKS && (
+                <div>
+                  {!showSubtaskInput ? (
+                    <button
+                      type="button"
+                      className="add-subtask-btn"
+                      onClick={() => setShowSubtaskInput(true)}
+                    >
+                      <IconPlus />
+                      添加子任务
+                    </button>
+                  ) : (
+                    <div className="subtask-input-row">
+                      <input
+                        className="form-input"
+                        type="text"
+                        placeholder="输入子任务标题，按 Enter 创建"
+                        value={subtaskTitle}
+                        disabled={subtaskLoading}
+                        style={{ flex: 1 }}
+                        autoFocus
+                        onChange={(e) => setSubtaskTitle(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") void handleCreateSubtask();
+                          if (e.key === "Escape") {
+                            setShowSubtaskInput(false);
+                            setSubtaskTitle("");
+                          }
+                        }}
+                      />
+                      <select
+                        className="form-select"
+                        value={subtaskPriority}
+                        disabled={subtaskLoading}
+                        onChange={(e) =>
+                          setSubtaskPriority(e.target.value as TaskPriority)
+                        }
+                      >
+                        <option value="high">高</option>
+                        <option value="medium">中</option>
+                        <option value="low">低</option>
+                      </select>
+                      <button
+                        type="button"
+                        className="btn btn-primary btn-sm"
+                        disabled={subtaskLoading || !subtaskTitle.trim()}
+                        onClick={() => void handleCreateSubtask()}
+                      >
+                        创建
+                      </button>
+                      <button
+                        type="button"
+                        className="btn-icon"
+                        style={{ width: 28, height: 28 }}
+                        disabled={subtaskLoading}
+                        onClick={() => {
+                          setShowSubtaskInput(false);
+                          setSubtaskTitle("");
+                        }}
+                      >
+                        <IconClose />
+                      </button>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           )}
 
