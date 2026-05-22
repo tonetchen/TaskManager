@@ -21,15 +21,22 @@ FROM users u
 WHERE u.github_id = 900001
   AND NOT EXISTS (SELECT 1 FROM workspaces w WHERE w.created_by = u.id);
 
--- ========== 工作区成员 ==========
+-- ========== 工作区成员（与 projects 使用同一工作区） ==========
 INSERT INTO workspace_members (workspace_id, user_id, role)
 SELECT ws.id, u.id, m.role
 FROM (
-  SELECT w.id
-  FROM workspaces w
-  INNER JOIN users admin ON admin.id = w.created_by AND admin.github_id = 900001
-  ORDER BY w.id ASC
-  LIMIT 1
+  SELECT COALESCE(
+    (
+      SELECT w.id
+      FROM workspaces w
+      INNER JOIN users admin ON admin.id = w.created_by AND admin.github_id = 900001
+      ORDER BY w.id ASC
+      LIMIT 1
+    ),
+    (
+      SELECT w.id FROM workspaces w ORDER BY w.id ASC LIMIT 1
+    )
+  ) AS id
 ) ws
 INNER JOIN users u ON u.github_id IN (900001, 900002, 900003, 901001, 901002, 901003, 901004, 901005)
 INNER JOIN (

@@ -42,7 +42,8 @@ npm run dev
 | 变量 | 说明 |
 |------|------|
 | `USE_MOCK_DATA` | `true` 时使用服务端内存 Mock（prototype 数据），无需 Postgres |
-| `POSTGRES_URL` | Postgres 连接串（Mock 关闭时使用） |
+| `POSTGRES_URL` | Vercel/Neon 集成自动注入的连接串 |
+| `TASKMANAGER_POSTGRES_URL` | **TaskManager 专用库**（优先于 POSTGRES_URL；Storage 锁死 POSTGRES_URL 时用） |
 | `NEXTAUTH_URL` | 应用 URL |
 | `NEXTAUTH_SECRET` | NextAuth 密钥 |
 
@@ -77,8 +78,9 @@ npm run dev
 ## Vercel 部署
 
 1. 导入 Git 仓库到 Vercel
-2. 创建 Vercel Postgres，绑定 `POSTGRES_URL`
-3. 环境变量：`USE_MOCK_DATA=false`（或不设置）、`NEXTAUTH_URL`、`NEXTAUTH_SECRET`
+2. 在 [Neon](https://console.neon.tech) 新建**独立项目**（勿与 git-star-hub 共用 `neon-byzantium-castle`）
+3. 环境变量：`USE_MOCK_DATA=false`、`NEXTAUTH_URL`、`NEXTAUTH_SECRET`
+4. 若 Vercel Storage 锁死 `POSTGRES_URL` 无法修改，**手动新增** `TASKMANAGER_POSTGRES_URL` = 新 Neon 项目的连接串（代码会优先读它）
 4. **部署后初始化数据库**（只需执行一次，在 Vercel Postgres SQL 控制台或 psql 中依次执行）：
 
    1. [`scripts/schema.sql`](scripts/schema.sql) — 建表（可重复执行，会自动补 `projects` 表）

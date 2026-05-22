@@ -24,7 +24,11 @@ export default function LoginPage() {
           return;
         }
         if (!d.ok) {
-          setDbWarning(d.message);
+          const detail =
+            d.database && d.tables
+              ? `（应用连到库「${d.database}」，表：${d.tables.join(", ") || "无"}）`
+              : "";
+          setDbWarning(`${d.message}${detail}`);
           setSeedWarning(null);
           return;
         }
@@ -110,7 +114,7 @@ export default function LoginPage() {
             {dbWarning}
             <br />
             <span style={{ color: "var(--muted)" }}>
-              可先登录进入系统；要加载任务数据请启动数据库。
+              若与 git-star-hub 共用 Neon 且无法改 POSTGRES_URL，请在 Vercel 新增可编辑的 TASKMANAGER_POSTGRES_URL 指向独立库后 Redeploy。
             </span>
           </div>
         )}
