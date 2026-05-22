@@ -19,6 +19,7 @@ interface ProjectContextValue {
   loading: boolean;
   selectProject: (id: number) => void;
   refreshProjects: () => Promise<void>;
+  adjustProjectTaskCount: (projectId: number, delta: number) => void;
 }
 
 const ProjectContext = createContext<ProjectContextValue | null>(null);
@@ -86,6 +87,16 @@ export function ProjectProvider({ children }: { children: React.ReactNode }) {
     [projects, projectId]
   );
 
+  const adjustProjectTaskCount = useCallback((id: number, delta: number) => {
+    setProjects((prev) =>
+      prev.map((p) =>
+        p.id === id
+          ? { ...p, task_count: Math.max(0, (p.task_count ?? 0) + delta) }
+          : p
+      )
+    );
+  }, []);
+
   const value = useMemo(
     () => ({
       projectId,
@@ -94,8 +105,9 @@ export function ProjectProvider({ children }: { children: React.ReactNode }) {
       loading,
       selectProject,
       refreshProjects,
+      adjustProjectTaskCount,
     }),
-    [projectId, project, projects, loading, selectProject, refreshProjects]
+    [projectId, project, projects, loading, selectProject, refreshProjects, adjustProjectTaskCount]
   );
 
   return <ProjectContext.Provider value={value}>{children}</ProjectContext.Provider>;

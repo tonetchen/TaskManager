@@ -19,7 +19,7 @@ import { useProject } from "./project-context";
 
 export function TasksApp() {
   const { data: session } = useSession();
-  const { projectId, project, refreshProjects } = useProject();
+  const { projectId, project, refreshProjects, adjustProjectTaskCount } = useProject();
   const role = (session?.user?.role ?? "observer") as MemberRole;
 
   const [tasks, setTasks] = useState<Task[]>([]);
@@ -47,7 +47,7 @@ export function TasksApp() {
   const canDelete = hasPermission(role, "task:delete");
   const canChangeStatus = hasPermission(role, "task:change_status");
 
-  const loadTasks = useCallback(async () => {
+  const loadTasks = useCallback(async (options?: { silent?: boolean }) => {
     const isKanban = view === "kanban";
     const params = new URLSearchParams({
       view: isKanban ? "board" : "list",
@@ -57,7 +57,7 @@ export function TasksApp() {
     if (priorityFilter !== "all") params.set("priority", priorityFilter);
     if (assigneeFilter !== "all") params.set("assigneeId", String(assigneeFilter));
 
-    setTasksLoading(true);
+    if (!options?.silent) setTasksLoading(true);
     try {
       const res = await fetch(`/api/tasks?${params}`);
       const data = await res.json();
@@ -65,9 +65,55 @@ export function TasksApp() {
         setTasks(isKanban ? data.tasks : normalizeListTasks(data.tasks));
       }
     } finally {
-      setTasksLoading(false);
+      if (!options?.silent) setTasksLoading(false);
     }
   }, [view, statusFilter, priorityFilter, assigneeFilter, projectId]);
+
+  function upsertTaskInState(task: Task) {
+    setTasks((prev) => {
+      if (view === "kanban") {
+        const idx = prev.findIndex((t) => t.id === task.id);
+        if (idx >= 0) {
+          return prev.map((t) => (t.id === task.id ? { ...t, ...task } : t));
+        }
+        if (task.parent_id) return prev;
+        return [...prev, task];
+      }
+
+      if (task.parent_id) {
+        return prev.map((root) =>
+          root.id === task.parent_id
+            ? {
+                ...root,
+                subtasks: root.subtasks?.some((s) => s.id === task.id)
+                  ? root.subtasks.map((s) => (s.id === task.id ? { ...s, ...task } : s))
+                  : [...(root.subtasks ?? []), task],
+              }
+            : root
+        );
+      }
+
+      const idx = prev.findIndex((t) => t.id === task.id);
+      if (idx >= 0) {
+        return prev.map((t) => (t.id === task.id ? { ...t, ...task, subtasks: t.subtasks } : t));
+      }
+      return [{ ...task, subtasks: [] }, ...prev];
+    });
+  }
+
+  function removeTaskFromState(taskId: number) {
+    setTasks((prev) => {
+      if (view === "kanban") {
+        return prev.filter((t) => t.id !== taskId);
+      }
+      return prev
+        .filter((t) => t.id !== taskId)
+        .map((t) => ({
+          ...t,
+          subtasks: (t.subtasks ?? []).filter((s) => s.id !== taskId),
+        }));
+    });
+  }
 
   const loadMembers = useCallback(async () => {
     try {
@@ -145,44 +191,49 @@ export function TasksApp() {
     };
 
     if (modalMode === "create") {
-      await api.createTask({ ...payload, projectId });
+      const { task } = await api.createTask({ ...payload, projectId });
+      upsertTaskInState(task);
+      if (!task.parent_id) adjustProjectTaskCount(projectId, 1);
     } else if (modalInitial) {
-      await api.updateTask(modalInitial.id, payload);
+      const { task } = await api.updateTask(modalInitial.id, payload);
+      upsertTaskInState(task);
     }
 
-    await loadTasks();
-    await refreshProjects();
     if (detailTask && modalInitial?.id === detailTask.id) {
       const data = await api.getTask(detailTask.id);
       setDetailTask(data.task);
       setDetailLogs(data.logs);
     }
+
+    void loadTasks({ silent: true });
   }
 
   async function handleDelete() {
     if (!detailTask || !canDelete) return;
     if (!confirm("确定删除此任务？")) return;
-    await api.deleteTask(detailTask.id);
+    const deletedId = detailTask.id;
+    const isRoot = !detailTask.parent_id;
+    await api.deleteTask(deletedId);
     closeDetail();
-    await loadTasks();
-    await refreshProjects();
+    removeTaskFromState(deletedId);
+    if (isRoot) adjustProjectTaskCount(projectId, -1);
+    void loadTasks({ silent: true });
   }
 
   async function handleStatusClick(status: UiStatus) {
     if (!detailTask || !canChangeStatus) return;
-    await api.updateTask(detailTask.id, { status: UI_STATUS_MAP[status] });
+    const { task } = await api.updateTask(detailTask.id, { status: UI_STATUS_MAP[status] });
+    setDetailTask(task);
+    upsertTaskInState(task);
     const data = await api.getTask(detailTask.id);
-    setDetailTask(data.task);
     setDetailLogs(data.logs);
-    await loadTasks();
   }
 
   async function handleBatchStatus(status: UiStatus) {
     if (!canChangeStatus || selected.size === 0) return;
-    await api.batchUpdateStatus([...selected], UI_STATUS_MAP[status]);
+    const { tasks: updated } = await api.batchUpdateStatus([...selected], UI_STATUS_MAP[status]);
     setSelected(new Set());
-    await loadTasks();
-    await refreshProjects();
+    for (const task of updated) upsertTaskInState(task);
   }
 
   async function handleKanbanMove(taskId: number, targetStatus: UiStatus, targetIndex: number) {
@@ -194,7 +245,6 @@ export function TasksApp() {
     const oldStatus = uiStatusOf(task);
 
     if (oldStatus !== targetStatus && !canTransition(task.status, newStatus)) {
-      await loadTasks();
       return;
     }
 
@@ -231,16 +281,15 @@ export function TasksApp() {
     });
 
     try {
-      await api.reorderKanban(taskId, newStatus, targetIndex);
+      const { task } = await api.reorderKanban(taskId, newStatus, targetIndex);
+      upsertTaskInState(task);
       if (detailTask?.id === taskId) {
+        setDetailTask(task);
         const data = await api.getTask(taskId);
-        setDetailTask(data.task);
         setDetailLogs(data.logs);
       }
-      await loadTasks();
     } catch {
       setTasks(prevTasks);
-      await loadTasks();
     }
   }
 
