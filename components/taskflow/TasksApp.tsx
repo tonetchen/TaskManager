@@ -7,7 +7,7 @@ import { hasPermission } from "@/lib/permissions";
 import { canTransition } from "@/lib/task-status";
 import { Task, TaskActivityLog, TaskPriority, TaskStatus, WorkspaceMember } from "@/lib/types";
 import { MemberRole } from "@/lib/types";
-import { UI_STATUS_MAP, UiStatus, normalizeListTasks, uiStatusOf } from "@/lib/taskflow-utils";
+import { UI_STATUS_MAP, UiStatus, normalizeListTasks, toIsoDateString, uiStatusOf } from "@/lib/taskflow-utils";
 import { BatchBar } from "./BatchBar";
 import { FilterBar } from "./FilterBar";
 import { IconKanban, IconList, IconPlus } from "./icons";
@@ -185,7 +185,7 @@ export function TasksApp() {
       description: form.description || null,
       priority: form.priority,
       status: UI_STATUS_MAP[form.status],
-      dueDate: form.dueDate || null,
+      dueDate: toIsoDateString(form.dueDate) || null,
       assigneeId: form.assigneeId,
       parentId: form.parentId,
     };

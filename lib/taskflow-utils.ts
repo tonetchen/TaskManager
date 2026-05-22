@@ -69,6 +69,27 @@ export function formatTaskHash(id: number): string {
   return `#${String(id).padStart(3, "0")}`;
 }
 
+export function toIsoDateString(
+  value: string | Date | null | undefined
+): string | null {
+  if (value == null || value === "") return null;
+  if (value instanceof Date) {
+    if (Number.isNaN(value.getTime())) return null;
+    const y = value.getUTCFullYear();
+    const m = String(value.getUTCMonth() + 1).padStart(2, "0");
+    const d = String(value.getUTCDate()).padStart(2, "0");
+    return `${y}-${m}-${d}`;
+  }
+  const s = String(value).trim();
+  if (/^\d{4}-\d{2}-\d{2}/.test(s)) return s.slice(0, 10);
+  const parsed = new Date(s);
+  if (Number.isNaN(parsed.getTime())) return null;
+  const y = parsed.getUTCFullYear();
+  const m = String(parsed.getUTCMonth() + 1).padStart(2, "0");
+  const d = String(parsed.getUTCDate()).padStart(2, "0");
+  return `${y}-${m}-${d}`;
+}
+
 export function isOverdue(dueDate: string | null): boolean {
   if (!dueDate) return false;
   const today = new Date();
@@ -78,8 +99,7 @@ export function isOverdue(dueDate: string | null): boolean {
 
 export function formatDate(date: string | Date | null): string {
   if (!date) return "—";
-  const d = typeof date === "string" ? date.slice(0, 10) : date.toISOString().slice(0, 10);
-  return d;
+  return toIsoDateString(date) ?? "—";
 }
 
 export function formatDateTime(date: string | Date): string {

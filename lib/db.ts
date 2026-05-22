@@ -1,4 +1,5 @@
 import { sql } from "./sql";
+import { toIsoDateString } from "./taskflow-utils";
 import {
   CreateTaskInput,
   MemberRole,
@@ -228,7 +229,7 @@ function mapTaskRow(row: Record<string, unknown>): Task {
     priority: row.priority as TaskPriority,
     status: row.status as TaskStatus,
     board_order: (row.board_order as number | undefined) ?? 0,
-    due_date: row.due_date ? String(row.due_date).slice(0, 10) : null,
+    due_date: toIsoDateString(row.due_date as string | Date | null),
     assignee_id: row.assignee_id as number | null,
     created_by: row.created_by as number,
     created_at: row.created_at as Date,

@@ -11,6 +11,7 @@ import {
 } from "@/lib/db";
 import { assertPermission } from "@/lib/permissions";
 import { assertTransition } from "@/lib/task-status";
+import { toIsoDateString } from "@/lib/taskflow-utils";
 import {
   CreateTaskInput,
   MemberRole,
@@ -84,7 +85,16 @@ export async function updateTaskWithValidation(
     assertTransition(existing.status, input.status);
   }
 
-  const updated = await updateTask(taskId, input);
+  const normalizedInput = { ...input };
+  if (input.dueDate !== undefined) {
+    normalizedInput.dueDate =
+      input.dueDate == null ? null : toIsoDateString(input.dueDate);
+    if (input.dueDate != null && normalizedInput.dueDate == null) {
+      throw new Error("VALIDATION: invalid dueDate");
+    }
+  }
+
+  const updated = await updateTask(taskId, normalizedInput);
   if (!updated) throw new Error("NOT_FOUND: task");
 
   if (input.status && input.status !== existing.status) {

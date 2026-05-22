@@ -7,6 +7,7 @@ import {
   UI_STATUS_MAP,
   UiStatus,
   formatTaskId,
+  toIsoDateString,
 } from "@/lib/taskflow-utils";
 import { IconClose } from "./icons";
 
@@ -51,9 +52,11 @@ export function TaskModal({
 }) {
   const [form, setForm] = useState<TaskFormData>(defaultForm);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!open) return;
+    setError(null);
     if (mode === "edit" && initial) {
       setForm({
         title: initial.title,
@@ -66,7 +69,7 @@ export function TaskModal({
               ? "review"
               : initial.status,
         assigneeId: initial.assignee_id,
-        dueDate: initial.due_date ?? "",
+        dueDate: toIsoDateString(initial.due_date) ?? "",
         parentId: initial.parent_id,
       });
     } else {
@@ -77,9 +80,12 @@ export function TaskModal({
   async function handleSubmit() {
     if (!form.title.trim()) return;
     setLoading(true);
+    setError(null);
     try {
       await onSubmit(form);
       onClose();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "保存失败，请稍后重试");
     } finally {
       setLoading(false);
     }
@@ -204,6 +210,18 @@ export function TaskModal({
           )}
         </div>
         <div className="modal-footer">
+          {error ? (
+            <div
+              style={{
+                flex: 1,
+                alignSelf: "center",
+                fontSize: 13,
+                color: "var(--accent)",
+              }}
+            >
+              {error}
+            </div>
+          ) : null}
           <button type="button" className="btn btn-secondary" onClick={onClose}>
             取消
           </button>
