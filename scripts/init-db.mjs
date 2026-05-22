@@ -19,6 +19,13 @@ async function main() {
   await pool.query(schema);
   console.log("Database schema initialized.");
 
+  const migratePath = path.join(__dirname, "migrate-add-projects.sql");
+  if (fs.existsSync(migratePath)) {
+    const migrate = fs.readFileSync(migratePath, "utf-8");
+    await pool.query(migrate);
+    console.log("Project migration applied.");
+  }
+
   const seedPath = path.join(__dirname, "seed.sql");
   if (fs.existsSync(seedPath)) {
     const seed = fs.readFileSync(seedPath, "utf-8");

@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { jsonError, requireAuth } from "@/lib/api-auth";
+import { ensureDefaultProject, listProjects } from "@/lib/db";
 import { isMockDataMode } from "@/lib/mock-mode";
 import { getMockStore } from "@/lib/mock-store";
 
@@ -16,9 +17,9 @@ export async function GET() {
       });
     }
 
-    return NextResponse.json({
-      projects: [{ id: 1, workspace_id: ctx.workspaceId, name: "默认项目" }],
-    });
+    await ensureDefaultProject(ctx.workspaceId);
+    const projects = await listProjects(ctx.workspaceId);
+    return NextResponse.json({ projects });
   } catch (error) {
     console.error(error);
     return jsonError("Internal server error", 500, "INTERNAL_ERROR");

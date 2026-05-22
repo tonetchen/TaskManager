@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { jsonError, requireAuth, requirePermission } from "@/lib/api-auth";
+import { getProjectById } from "@/lib/db";
 import { isMockDataMode } from "@/lib/mock-mode";
 import { getMockStore } from "@/lib/mock-store";
 import {
@@ -40,7 +41,7 @@ export async function GET(request: NextRequest) {
     status: status || undefined,
     priority: priority || undefined,
     assigneeId: assigneeId ? parseInt(assigneeId, 10) : undefined,
-    projectId: isMockDataMode() ? projectId : undefined,
+    projectId,
   };
 
   try {
@@ -54,6 +55,11 @@ export async function GET(request: NextRequest) {
           ? store.listTasks(ctx.workspaceId, filters)
           : store.getTasksWithSubtasks(ctx.workspaceId, filters);
       return NextResponse.json({ tasks, role: ctx.role, mock: true, projectId });
+    }
+
+    const project = await getProjectById(ctx.workspaceId, projectId);
+    if (!project) {
+      return jsonError("Project not found", 404, "NOT_FOUND");
     }
 
     if (view === "board") {
@@ -77,9 +83,16 @@ export async function POST(request: NextRequest) {
       return jsonError("Title is required", 422, "VALIDATION_ERROR");
     }
 
+    const projectId = body.projectId ?? 1;
+    if (!isMockDataMode()) {
+      const project = await getProjectById(ctx.workspaceId, projectId);
+      if (!project) {
+        return jsonError("Project not found", 404, "NOT_FOUND");
+      }
+    }
+
     if (isMockDataMode()) {
       const store = getMockStore();
-      const projectId = body.projectId ?? 1;
       if (!store.getProjectById(projectId)) {
         return jsonError("Project not found", 404, "NOT_FOUND");
       }
@@ -91,7 +104,7 @@ export async function POST(request: NextRequest) {
       ctx.workspaceId,
       ctx.userId,
       ctx.role,
-      body
+      { ...body, projectId }
     );
     return NextResponse.json({ task }, { status: 201 });
   } catch (error) {

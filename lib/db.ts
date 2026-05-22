@@ -2,6 +2,7 @@ import { sql } from "@vercel/postgres";
 import {
   CreateTaskInput,
   MemberRole,
+  Project,
   Task,
   TaskActivityLog,
   TaskPriority,
@@ -175,10 +176,82 @@ export async function updateMemberRole(
   return result.rows[0] as WorkspaceMember;
 }
 
+export async function listProjects(workspaceId: number): Promise<Project[]> {
+  const result = await sql`
+    SELECT
+      p.id,
+      p.workspace_id,
+      p.name,
+      (
+        SELECT COUNT(*)::int
+        FROM tasks t
+        WHERE t.project_id = p.id AND t.parent_id IS NULL
+      ) AS task_count
+    FROM projects p
+    WHERE p.workspace_id = ${workspaceId}
+    ORDER BY p.id ASC
+  `;
+  return result.rows.map((row) => ({
+    id: row.id as number,
+    workspace_id: row.workspace_id as number,
+    name: row.name as string,
+    task_count: row.task_count as number,
+  }));
+}
+
+export async function getProjectById(
+  workspaceId: number,
+  projectId: number
+): Promise<Project | null> {
+  const result = await sql`
+    SELECT id, workspace_id, name
+    FROM projects
+    WHERE id = ${projectId} AND workspace_id = ${workspaceId}
+  `;
+  if (result.rows.length === 0) return null;
+  const row = result.rows[0];
+  return {
+    id: row.id as number,
+    workspace_id: row.workspace_id as number,
+    name: row.name as string,
+  };
+}
+
+export async function ensureDefaultProject(workspaceId: number): Promise<Project> {
+  const existing = await sql`
+    SELECT id, workspace_id, name
+    FROM projects
+    WHERE workspace_id = ${workspaceId}
+    ORDER BY id ASC
+    LIMIT 1
+  `;
+  if (existing.rows.length > 0) {
+    const row = existing.rows[0];
+    return {
+      id: row.id as number,
+      workspace_id: row.workspace_id as number,
+      name: row.name as string,
+    };
+  }
+
+  const created = await sql`
+    INSERT INTO projects (workspace_id, name)
+    VALUES (${workspaceId}, '默认项目')
+    RETURNING id, workspace_id, name
+  `;
+  const row = created.rows[0];
+  return {
+    id: row.id as number,
+    workspace_id: row.workspace_id as number,
+    name: row.name as string,
+  };
+}
+
 function mapTaskRow(row: Record<string, unknown>): Task {
   return {
     id: row.id as number,
     workspace_id: row.workspace_id as number,
+    project_id: (row.project_id as number | null) ?? undefined,
     parent_id: row.parent_id as number | null,
     title: row.title as string,
     description: row.description as string | null,
@@ -228,6 +301,7 @@ export async function listTasks(
     priority?: TaskPriority;
     assigneeId?: number;
     parentId?: number | null;
+    projectId?: number;
   } = {}
 ): Promise<Task[]> {
   const conditions = [`t.workspace_id = ${workspaceId}`];
@@ -240,6 +314,9 @@ export async function listTasks(
   }
   if (filters.assigneeId !== undefined) {
     conditions.push(`t.assignee_id = ${filters.assigneeId}`);
+  }
+  if (filters.projectId !== undefined) {
+    conditions.push(`t.project_id = ${filters.projectId}`);
   }
   if (filters.parentId === null) {
     conditions.push(`t.parent_id IS NULL`);
@@ -263,12 +340,14 @@ export async function createTask(
   createdBy: number,
   input: CreateTaskInput
 ): Promise<Task> {
+  const projectId = input.projectId ?? (await ensureDefaultProject(workspaceId)).id;
   const result = await sql`
     INSERT INTO tasks (
-      workspace_id, parent_id, title, description, priority, status,
+      workspace_id, project_id, parent_id, title, description, priority, status,
       due_date, assignee_id, created_by
     ) VALUES (
       ${workspaceId},
+      ${projectId},
       ${input.parentId ?? null},
       ${input.title},
       ${input.description ?? null},
@@ -409,10 +488,12 @@ export async function ensureUserWorkspace(userId: number): Promise<{
   const existing = await getDefaultWorkspaceForUser(userId);
   if (existing) {
     const role = await getMemberRole(existing.id, userId);
+    await ensureDefaultProject(existing.id);
     return { workspace: existing, role: role ?? "observer" };
   }
 
   const workspace = await createWorkspace("默认工作区", userId);
   await addWorkspaceMember(workspace.id, userId, "admin");
+  await ensureDefaultProject(workspace.id);
   return { workspace, role: "admin" };
 }
