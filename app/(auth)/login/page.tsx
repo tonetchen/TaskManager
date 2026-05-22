@@ -55,7 +55,9 @@ export default function LoginPage() {
     setLoading(false);
 
     if (result?.error) {
-      if (result.error === "CredentialsSignin") {
+      if (result.error.includes("数据库不可用")) {
+        setError(result.error);
+      } else if (result.error === "CredentialsSignin") {
         setError("登录失败：请确认账号密码正确，且已执行 scripts/schema.sql 与 scripts/seed.sql");
       } else {
         setError(`登录失败：${result.error}`);
@@ -151,11 +153,9 @@ export default function LoginPage() {
           </button>
         </form>
         <p style={{ marginTop: 16, fontSize: 12, color: "var(--muted-light)", lineHeight: 1.6 }}>
-          演示账号（密码在服务端校验，需已执行 seed.sql）：
+          演示账号：
           <br />
           {MOCK_USERS.map((u) => `${u.username} / ${u.password}`).join(" · ")}
-          <br />
-          本地 Mock：.env.local 设置 USE_MOCK_DATA=true，无需 Postgres
         </p>
       </div>
     </div>

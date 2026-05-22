@@ -11,6 +11,7 @@ import { shouldUseDatabase, isMockDataMode } from "./mock-mode";
 import { getMockUserByUsername, verifyMockCredentials, MockUser } from "./mock-auth";
 
 const MOCK_ID_BASE = 900_000;
+const DB_UNAVAILABLE_ERROR = "数据库不可用，请稍后重试";
 
 function isMockSessionUser(userId: string, mock: MockUser | null): boolean {
   if (!mock) return false;
@@ -117,8 +118,8 @@ export const authOptions: NextAuthOptions = {
             role,
           };
         } catch (error) {
-          console.error("[auth] 数据库连接失败，降级为 Mock 会话:", error);
-          return mockAuthUser(mock);
+          console.error("[auth] 数据库连接失败:", error);
+          throw new Error(DB_UNAVAILABLE_ERROR);
         }
       },
     }),
@@ -148,10 +149,8 @@ export const authOptions: NextAuthOptions = {
           token.role = effectiveRole;
           token.workspaceId = workspace.id;
         } catch (error) {
-          console.error("[auth] JWT 回调数据库失败，使用 Mock 会话:", error);
-          if (mock) {
-            return applyMockToToken(token, mock, user.id);
-          }
+          console.error("[auth] JWT 回调数据库失败:", error);
+          throw new Error(DB_UNAVAILABLE_ERROR);
         }
       } else if (token.id && token.username) {
         const mock = getMockUserByUsername(token.username as string);
@@ -166,8 +165,9 @@ export const authOptions: NextAuthOptions = {
           const { workspace, role } = await ensureUserWorkspace(userId);
           token.role = role ?? mock?.role ?? "observer";
           token.workspaceId = workspace.id;
-        } catch {
-          if (mock) applyMockToToken(token, mock, String(token.id));
+        } catch (error) {
+          console.error("[auth] JWT 刷新数据库失败:", error);
+          throw new Error(DB_UNAVAILABLE_ERROR);
         }
       }
       return token;

@@ -75,7 +75,8 @@ export async function getAuthContext(): Promise<AuthContext | null> {
       workspaceId: workspace.id,
       role: (role ?? mock?.role ?? session.user.role ?? "observer") as MemberRole,
     };
-  } catch {
+  } catch (error) {
+    console.error("[api-auth] 数据库不可用:", error);
     return null;
   }
 }
@@ -104,10 +105,20 @@ export async function requireAuth(): Promise<AuthContext | NextResponse> {
 
   const ctx = await getAuthContext();
   if (!ctx) {
+    const sessionUserId = parseInt(session.user.id, 10);
+    const isStaleMockSession =
+      !Number.isNaN(sessionUserId) && sessionUserId >= MOCK_ID_BASE;
+    if (isStaleMockSession) {
+      return jsonError(
+        "会话已失效（数据库模式不可用 Mock 会话），请重新登录",
+        401,
+        "STALE_MOCK_SESSION"
+      );
+    }
     return jsonError(
       "未授权或数据库未就绪，请重新登录并执行 scripts/schema.sql 与 scripts/seed.sql",
-      401,
-      "UNAUTHORIZED"
+      503,
+      "DB_UNAVAILABLE"
     );
   }
   return ctx;
