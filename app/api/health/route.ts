@@ -40,7 +40,7 @@ export async function GET() {
       seeded: hasSeedData,
       message: hasSeedData
         ? "数据库连接正常"
-        : "数据库已连接，但尚未初始化演示数据，请执行 lib/schema.sql 与 scripts/seed.sql",
+        : "数据库已连接，但尚未初始化演示数据，请执行 scripts/schema.sql 与 scripts/seed.sql",
     });
   } catch (error) {
     const message = error instanceof Error ? error.message : "数据库连接失败";

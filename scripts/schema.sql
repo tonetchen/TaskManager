@@ -1,5 +1,7 @@
--- TaskManager Database Schema
+-- TaskManager 数据库结构（可重复执行，兼容旧库升级）
+-- 执行顺序：先本文件，再 scripts/seed.sql
 
+-- ========== 1. 基础表 ==========
 CREATE TABLE IF NOT EXISTS users (
   id SERIAL PRIMARY KEY,
   github_id BIGINT NOT NULL UNIQUE,
@@ -28,6 +30,7 @@ CREATE TABLE IF NOT EXISTS workspace_members (
   UNIQUE (workspace_id, user_id)
 );
 
+-- ========== 2. 项目表（旧库常缺此表，必须单独补建） ==========
 CREATE TABLE IF NOT EXISTS projects (
   id SERIAL PRIMARY KEY,
   workspace_id INTEGER NOT NULL REFERENCES workspaces(id) ON DELETE CASCADE,
@@ -36,6 +39,7 @@ CREATE TABLE IF NOT EXISTS projects (
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
+-- ========== 3. 任务表（新库完整创建；旧库已存在则跳过建表） ==========
 CREATE TABLE IF NOT EXISTS tasks (
   id SERIAL PRIMARY KEY,
   workspace_id INTEGER NOT NULL REFERENCES workspaces(id) ON DELETE CASCADE,
@@ -53,6 +57,9 @@ CREATE TABLE IF NOT EXISTS tasks (
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
+-- 旧库升级：tasks 表已存在但没有 project_id 列
+ALTER TABLE tasks ADD COLUMN IF NOT EXISTS project_id INTEGER REFERENCES projects(id) ON DELETE CASCADE;
+
 CREATE TABLE IF NOT EXISTS task_activity_logs (
   id SERIAL PRIMARY KEY,
   task_id INTEGER NOT NULL REFERENCES tasks(id) ON DELETE CASCADE,
@@ -64,6 +71,7 @@ CREATE TABLE IF NOT EXISTS task_activity_logs (
   created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
+-- ========== 4. 索引 ==========
 CREATE INDEX IF NOT EXISTS idx_users_github_id ON users(github_id);
 CREATE INDEX IF NOT EXISTS idx_workspace_members_workspace ON workspace_members(workspace_id);
 CREATE INDEX IF NOT EXISTS idx_workspace_members_user ON workspace_members(user_id);
@@ -74,6 +82,7 @@ CREATE INDEX IF NOT EXISTS idx_tasks_assignee ON tasks(assignee_id);
 CREATE INDEX IF NOT EXISTS idx_tasks_parent ON tasks(parent_id);
 CREATE INDEX IF NOT EXISTS idx_logs_task_id ON task_activity_logs(task_id);
 
+-- ========== 5. updated_at 触发器 ==========
 CREATE OR REPLACE FUNCTION update_updated_at_column()
 RETURNS TRIGGER AS $$
 BEGIN

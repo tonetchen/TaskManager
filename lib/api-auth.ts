@@ -105,7 +105,7 @@ export async function requireAuth(): Promise<AuthContext | NextResponse> {
   const ctx = await getAuthContext();
   if (!ctx) {
     return jsonError(
-      "未授权或数据库未就绪，请重新登录并执行 lib/schema.sql 与 scripts/seed.sql",
+      "未授权或数据库未就绪，请重新登录并执行 scripts/schema.sql 与 scripts/seed.sql",
       401,
       "UNAUTHORIZED"
     );

@@ -29,7 +29,7 @@ export default function LoginPage() {
           return;
         }
         if (d.seeded === false) {
-          setSeedWarning("数据库尚未初始化，请在 Postgres 中执行 lib/schema.sql 与 scripts/seed.sql");
+          setSeedWarning("数据库尚未初始化，请在 Postgres 中执行 scripts/schema.sql 与 scripts/seed.sql");
         } else {
           setSeedWarning(null);
         }
@@ -52,7 +52,7 @@ export default function LoginPage() {
 
     if (result?.error) {
       if (result.error === "CredentialsSignin") {
-        setError("登录失败：请确认账号密码正确，且已执行 lib/schema.sql 与 scripts/seed.sql");
+        setError("登录失败：请确认账号密码正确，且已执行 scripts/schema.sql 与 scripts/seed.sql");
       } else {
         setError(`登录失败：${result.error}`);
       }

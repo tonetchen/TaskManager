@@ -33,7 +33,7 @@ npm run dev:clean
 cp .env.example .env.local
 # 设置 USE_MOCK_DATA=false 并取消注释 POSTGRES_URL
 docker compose up -d
-# 在 Postgres 中依次执行 lib/schema.sql、scripts/seed.sql
+# 在 Postgres 中依次执行 scripts/schema.sql、scripts/seed.sql
 npm run dev
 ```
 
@@ -81,7 +81,7 @@ npm run dev
 3. 环境变量：`USE_MOCK_DATA=false`（或不设置）、`NEXTAUTH_URL`、`NEXTAUTH_SECRET`
 4. **部署后初始化数据库**（只需执行一次，在 Vercel Postgres SQL 控制台或 psql 中依次执行）：
 
-   1. [`lib/schema.sql`](lib/schema.sql) — 建表
+   1. [`scripts/schema.sql`](scripts/schema.sql) — 建表（可重复执行，会自动补 `projects` 表）
    2. [`scripts/seed.sql`](scripts/seed.sql) — 演示数据（用户、项目、任务）
 
 5. 配置 `NEXTAUTH_URL` 为线上域名，使用 **admin / admin666** 登录。
