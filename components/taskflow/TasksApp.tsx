@@ -11,6 +11,7 @@ import { UI_STATUS_MAP, UiStatus, normalizeListTasks, toIsoDateString, uiStatusO
 import { BatchBar } from "./BatchBar";
 import { FilterBar } from "./FilterBar";
 import { IconKanban, IconList, IconPlus } from "./icons";
+import { LoadingSpinner } from "./LoadingSpinner";
 import { KanbanView } from "./KanbanView";
 import { TaskDetailPanel } from "./TaskDetailPanel";
 import { TaskFormData, TaskModal } from "./TaskModal";
@@ -346,9 +347,7 @@ export function TasksApp() {
         <div className="content">
           <div className={`page${view === "list" ? " active" : ""}`} id="view-list">
             {tasksLoading ? (
-              <div className="empty-state">
-                <div className="empty-state-text">加载中...</div>
-              </div>
+              <LoadingSpinner />
             ) : tasks.length === 0 ? (
               <div className="empty-state">
                 <div className="empty-state-icon">📋</div>
@@ -377,9 +376,7 @@ export function TasksApp() {
           </div>
           <div className={`page${view === "kanban" ? " active" : ""}`} id="view-kanban">
             {tasksLoading ? (
-              <div className="empty-state">
-                <div className="empty-state-text">加载中...</div>
-              </div>
+              <LoadingSpinner />
             ) : (
               <KanbanView
                 tasks={rootTasks}

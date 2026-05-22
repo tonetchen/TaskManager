@@ -795,6 +795,25 @@ body{
 .empty-state-icon{font-size:36px;margin-bottom:12px;opacity:0.3}
 .empty-state-text{font-size:14px}
 
+/* ── Loading ── */
+.loading-state{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  padding:60px 20px;
+  min-height:200px;
+}
+.loading-spinner{
+  width:32px;height:32px;
+  border:3px solid var(--border);
+  border-top-color:var(--accent);
+  border-radius:50%;
+  animation:loading-spin 0.65s linear infinite;
+}
+@keyframes loading-spin{
+  to{transform:rotate(360deg)}
+}
+
 /* ── Tablet (768–1023px) ── */
 @media (max-width:1023px){
   .kanban{

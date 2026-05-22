@@ -5,6 +5,7 @@ import { useSession } from "next-auth/react";
 import { useRouter, usePathname } from "next/navigation";
 import { Sidebar } from "@/components/taskflow/Sidebar";
 import { ProjectProvider, useProject } from "@/components/taskflow/project-context";
+import { LoadingSpinner } from "@/components/taskflow/LoadingSpinner";
 import { IconMenu } from "@/components/taskflow/icons";
 
 function DashboardShell({ children }: { children: React.ReactNode }) {
@@ -67,7 +68,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   if (status === "loading") {
     return (
       <div className="app" style={{ alignItems: "center", justifyContent: "center" }}>
-        <p style={{ color: "var(--muted)" }}>加载中...</p>
+        <LoadingSpinner />
       </div>
     );
   }
