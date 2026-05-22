@@ -328,9 +328,10 @@ export async function createTask(
       ${input.assigneeId ?? null},
       ${createdBy}
     )
-    RETURNING *
+    RETURNING id
   `;
-  return mapTaskRow(result.rows[0]);
+  const id = result.rows[0].id as number;
+  return (await getTaskById(id))!;
 }
 
 export async function updateTask(
@@ -350,10 +351,10 @@ export async function updateTask(
       assignee_id = COALESCE(${input.assigneeId ?? null}, assignee_id),
       updated_at = NOW()
     WHERE id = ${taskId}
-    RETURNING *
+    RETURNING id
   `;
   if (result.rows.length === 0) return null;
-  return mapTaskRow(result.rows[0]);
+  return getTaskById(taskId);
 }
 
 async function renumberColumnInDb(workspaceId: number, status: TaskStatus) {

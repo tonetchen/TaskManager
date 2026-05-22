@@ -70,12 +70,21 @@ export function TasksApp() {
     }
   }, [view, statusFilter, priorityFilter, assigneeFilter, projectId]);
 
+  function mergeTask(existing: Task, patch: Task): Task {
+    return {
+      ...existing,
+      ...patch,
+      assignee_username: patch.assignee_username ?? existing.assignee_username,
+      subtasks: patch.subtasks ?? existing.subtasks,
+    };
+  }
+
   function upsertTaskInState(task: Task) {
     setTasks((prev) => {
       if (view === "kanban") {
         const idx = prev.findIndex((t) => t.id === task.id);
         if (idx >= 0) {
-          return prev.map((t) => (t.id === task.id ? { ...t, ...task } : t));
+          return prev.map((t) => (t.id === task.id ? mergeTask(t, task) : t));
         }
         if (task.parent_id) return prev;
         return [...prev, task];
@@ -87,7 +96,9 @@ export function TasksApp() {
             ? {
                 ...root,
                 subtasks: root.subtasks?.some((s) => s.id === task.id)
-                  ? root.subtasks.map((s) => (s.id === task.id ? { ...s, ...task } : s))
+                  ? root.subtasks.map((s) =>
+                      s.id === task.id ? mergeTask(s, task) : s
+                    )
                   : [...(root.subtasks ?? []), task],
               }
             : root
@@ -96,7 +107,9 @@ export function TasksApp() {
 
       const idx = prev.findIndex((t) => t.id === task.id);
       if (idx >= 0) {
-        return prev.map((t) => (t.id === task.id ? { ...t, ...task, subtasks: t.subtasks } : t));
+        return prev.map((t) =>
+          t.id === task.id ? mergeTask(t, task) : t
+        );
       }
       return [{ ...task, subtasks: [] }, ...prev];
     });
