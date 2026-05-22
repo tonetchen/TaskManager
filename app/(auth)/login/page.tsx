@@ -57,8 +57,12 @@ export default function LoginPage() {
     if (result?.error) {
       if (result.error.includes("数据库不可用")) {
         setError(result.error);
+      } else if (result.error.includes("工作区角色")) {
+        setError(result.error);
       } else if (result.error === "CredentialsSignin") {
-        setError("登录失败：请确认账号密码正确，且已执行 scripts/schema.sql 与 scripts/seed.sql");
+        setError(
+          "登录失败：请确认账号密码正确，且已在数据库执行 scripts/schema.sql 与 scripts/seed.sql（角色以 workspace_members 为准）"
+        );
       } else {
         setError(`登录失败：${result.error}`);
       }

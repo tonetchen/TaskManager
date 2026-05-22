@@ -49,7 +49,7 @@ npm run dev
 
 ## Mock 登录账号
 
-密码定义在 [`lib/mock-auth.ts`](lib/mock-auth.ts)，与 `scripts/seed.sql` 中 `users.github_id` 对应；角色以 `workspace_members.role` 为准。
+密码定义在 [`lib/mock-auth.ts`](lib/mock-auth.ts)，与 `scripts/seed.sql` 中 `users.github_id` 对应。**接库时（`USE_MOCK_DATA=false`）角色仅以 `workspace_members.role` 为准**，不再使用 `mock-auth` 中的 `role` 字段。
 
 | 用户名 | 密码 | 角色 |
 |--------|------|------|

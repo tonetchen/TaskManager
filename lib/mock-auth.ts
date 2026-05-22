@@ -1,12 +1,16 @@
 import { MemberRole } from "./types";
 
-/** 演示登录账号：密码在此校验，users 表只存身份（github_id 与 seed.sql 一致） */
+/**
+ * 演示登录账号：密码在此校验（DB 模式同样使用）。
+ * role 仅用于 USE_MOCK_DATA=true；接库时角色以 workspace_members 为准。
+ */
 export interface MockUser {
   username: string;
   password: string;
   /** 写入 users.github_id 的合成 ID，避免与真实 OAuth 冲突 */
   externalId: number;
   email: string;
+  /** Mock 内存模式下的角色；DB 模式忽略，读 workspace_members.role */
   role: MemberRole;
 }
 

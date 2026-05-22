@@ -28,15 +28,29 @@ function mockAuthContext(session: {
   };
 }
 
-async function resolveSessionUserId(sessionUserId: string): Promise<number | null> {
+async function resolveDbUserId(
+  sessionUserId: string,
+  username?: string
+): Promise<number | null> {
   const parsed = parseInt(sessionUserId, 10);
-  if (Number.isNaN(parsed)) return null;
-
-  if (parsed >= MOCK_ID_BASE) {
-    const dbUser = await getUserByGithubId(parsed);
-    return dbUser?.id ?? null;
+  if (!Number.isNaN(parsed) && parsed < MOCK_ID_BASE) {
+    return parsed;
   }
-  return parsed;
+
+  if (!Number.isNaN(parsed) && parsed >= MOCK_ID_BASE) {
+    const dbUser = await getUserByGithubId(parsed);
+    if (dbUser) return dbUser.id;
+  }
+
+  if (username) {
+    const mock = getMockUserByUsername(username);
+    if (mock) {
+      const dbUser = await getUserByGithubId(mock.externalId);
+      return dbUser?.id ?? null;
+    }
+  }
+
+  return null;
 }
 
 export async function getAuthContext(): Promise<AuthContext | null> {
@@ -52,31 +66,20 @@ export async function getAuthContext(): Promise<AuthContext | null> {
   }
 
   try {
-    const userId = await resolveSessionUserId(session.user.id);
-    if (!userId) {
-      const mock = getMockUserByUsername(session.user.username ?? "");
-      if (mock) {
-        const dbUser = await getUserByGithubId(mock.externalId);
-        if (!dbUser) return null;
-        const { workspace, role } = await ensureUserWorkspace(dbUser.id);
-        return {
-          userId: dbUser.id,
-          workspaceId: workspace.id,
-          role: (role ?? mock.role) as MemberRole,
-        };
-      }
-      return null;
-    }
+    const userId = await resolveDbUserId(
+      session.user.id,
+      session.user.username ?? undefined
+    );
+    if (!userId) return null;
 
-    const mock = getMockUserByUsername(session.user.username ?? "");
     const { workspace, role } = await ensureUserWorkspace(userId);
     return {
       userId,
       workspaceId: workspace.id,
-      role: (role ?? mock?.role ?? session.user.role ?? "observer") as MemberRole,
+      role,
     };
   } catch (error) {
-    console.error("[api-auth] 数据库不可用:", error);
+    console.error("[api-auth] 鉴权失败:", error);
     return null;
   }
 }

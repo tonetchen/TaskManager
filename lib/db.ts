@@ -453,6 +453,9 @@ export async function listActivityLogs(taskId: number): Promise<TaskActivityLog[
   }));
 }
 
+export const WORKSPACE_ROLE_MISSING_MESSAGE =
+  "用户未配置工作区角色，请执行 scripts/schema.sql 与 scripts/seed.sql";
+
 export async function ensureUserWorkspace(userId: number): Promise<{
   workspace: Workspace;
   role: MemberRole;
@@ -460,7 +463,10 @@ export async function ensureUserWorkspace(userId: number): Promise<{
   const existing = await getDefaultWorkspaceForUser(userId);
   if (existing) {
     const role = await getMemberRole(existing.id, userId);
-    return { workspace: existing, role: role ?? "observer" };
+    if (!role) {
+      throw new Error(WORKSPACE_ROLE_MISSING_MESSAGE);
+    }
+    return { workspace: existing, role };
   }
 
   const workspace = await createWorkspace("默认工作区", userId);

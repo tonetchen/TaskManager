@@ -66,7 +66,9 @@ async function resolveDbUser(username: string) {
   const workspace = await getDefaultWorkspaceForUser(dbUser.id);
   if (!workspace) return null;
 
-  const role = (await getMemberRole(workspace.id, dbUser.id)) ?? mock.role;
+  const role = await getMemberRole(workspace.id, dbUser.id);
+  if (!role) return null;
+
   return { dbUser, workspace, role };
 }
 
@@ -140,16 +142,18 @@ export const authOptions: NextAuthOptions = {
         try {
           const userId = parseInt(user.id, 10);
           const { workspace, role } = await ensureUserWorkspace(userId);
-          const effectiveRole = role ?? mock?.role ?? "observer";
 
           token.id = user.id;
           token.username = user.name ?? undefined;
           token.email = user.email ?? null;
           token.avatar_url = user.image ?? null;
-          token.role = effectiveRole;
+          token.role = role;
           token.workspaceId = workspace.id;
         } catch (error) {
           console.error("[auth] JWT 回调数据库失败:", error);
+          if (error instanceof Error && error.message.includes("工作区角色")) {
+            throw error;
+          }
           throw new Error(DB_UNAVAILABLE_ERROR);
         }
       } else if (token.id && token.username) {
@@ -163,10 +167,13 @@ export const authOptions: NextAuthOptions = {
         try {
           const userId = parseInt(String(token.id), 10);
           const { workspace, role } = await ensureUserWorkspace(userId);
-          token.role = role ?? mock?.role ?? "observer";
+          token.role = role;
           token.workspaceId = workspace.id;
         } catch (error) {
           console.error("[auth] JWT 刷新数据库失败:", error);
+          if (error instanceof Error && error.message.includes("工作区角色")) {
+            throw error;
+          }
           throw new Error(DB_UNAVAILABLE_ERROR);
         }
       }
