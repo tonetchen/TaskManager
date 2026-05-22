@@ -24,7 +24,19 @@ export async function GET() {
 
   try {
     await sql`SELECT 1`;
-    return NextResponse.json({ ok: true, db: true, mock: false, message: "数据库连接正常" });
+    const seeded = await sql`
+      SELECT EXISTS(SELECT 1 FROM users WHERE github_id = 900001) AS ok
+    `;
+    const hasSeedData = Boolean(seeded.rows[0]?.ok);
+    return NextResponse.json({
+      ok: true,
+      db: true,
+      mock: false,
+      seeded: hasSeedData,
+      message: hasSeedData
+        ? "数据库连接正常"
+        : "数据库已连接，但尚未初始化演示数据（可执行 npm run db:init 或首次登录自动创建账号）",
+    });
   } catch (error) {
     const message = error instanceof Error ? error.message : "数据库连接失败";
     return NextResponse.json({

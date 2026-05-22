@@ -1,6 +1,8 @@
 import { NextAuthOptions } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
 import {
+  addWorkspaceMember,
+  createUser,
   ensureUserWorkspace,
   getDefaultWorkspaceForUser,
   getMemberRole,
@@ -53,18 +55,30 @@ function mockAuthUser(mock: MockUser) {
   };
 }
 
+/** 仅在登录时同步 Mock 账号到数据库，不在 API 请求中自动写库 */
 async function resolveDbUser(username: string) {
   const mock = getMockUserByUsername(username);
   if (!mock) return null;
 
-  const dbUser =
+  let dbUser =
     (await getUserByUsername(username)) ??
     (await getUserByGithubId(mock.externalId));
-  if (!dbUser) return null;
+  if (!dbUser) {
+    dbUser = await createUser({
+      githubId: mock.externalId,
+      username: mock.username,
+      email: mock.email,
+      avatarUrl: null,
+    });
+  }
 
-  const workspace = await getDefaultWorkspaceForUser(dbUser.id);
-  if (!workspace) return null;
+  let workspace = await getDefaultWorkspaceForUser(dbUser.id);
+  if (!workspace) {
+    const ensured = await ensureUserWorkspace(dbUser.id);
+    workspace = ensured.workspace;
+  }
 
+  await addWorkspaceMember(workspace.id, dbUser.id, mock.role);
   const role = (await getMemberRole(workspace.id, dbUser.id)) ?? mock.role;
   return { dbUser, workspace, role };
 }

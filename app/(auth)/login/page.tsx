@@ -10,6 +10,7 @@ export default function LoginPage() {
   const [password, setPassword] = useState("admin666");
   const [error, setError] = useState<string | null>(null);
   const [dbWarning, setDbWarning] = useState<string | null>(null);
+  const [seedWarning, setSeedWarning] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
@@ -18,9 +19,19 @@ export default function LoginPage() {
       .then((d) => {
         if (d.mock) {
           setDbWarning(null);
+          setSeedWarning(null);
           return;
         }
-        if (!d.ok) setDbWarning(d.message);
+        if (!d.ok) {
+          setDbWarning(d.message);
+          setSeedWarning(null);
+          return;
+        }
+        if (d.seeded === false) {
+          setSeedWarning(
+            "数据库尚未导入 seed 数据，登录后将自动创建账号；完整项目/任务数据请执行 npm run db:init"
+          );
+        }
       })
       .catch(() => setDbWarning("无法检测服务状态"));
   }, []);
@@ -66,6 +77,22 @@ export default function LoginPage() {
         <p style={{ color: "var(--muted)", fontSize: 14, marginBottom: 24 }}>
           任务管理系统 — Mock 登录
         </p>
+
+        {seedWarning && !dbWarning && (
+          <div
+            style={{
+              background: "var(--warning-bg)",
+              color: "var(--warning)",
+              fontSize: 12,
+              padding: "10px 12px",
+              borderRadius: "var(--radius-sm)",
+              marginBottom: 16,
+              lineHeight: 1.5,
+            }}
+          >
+            {seedWarning}
+          </div>
+        )}
 
         {dbWarning && (
           <div
