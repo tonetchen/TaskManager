@@ -25,7 +25,12 @@ export async function GET() {
   try {
     await sql`SELECT 1`;
     const seeded = await sql`
-      SELECT EXISTS(SELECT 1 FROM users WHERE github_id = 900001) AS ok
+      SELECT EXISTS(
+        SELECT 1 FROM projects p
+        INNER JOIN workspace_members wm ON wm.workspace_id = p.workspace_id
+        INNER JOIN users u ON u.id = wm.user_id AND u.github_id = 900001
+        LIMIT 1
+      ) AS ok
     `;
     const hasSeedData = Boolean(seeded.rows[0]?.ok);
     return NextResponse.json({
@@ -35,7 +40,7 @@ export async function GET() {
       seeded: hasSeedData,
       message: hasSeedData
         ? "数据库连接正常"
-        : "数据库已连接，但尚未初始化演示数据（可执行 npm run db:init 或首次登录自动创建账号）",
+        : "数据库已连接，但尚未初始化演示数据，请执行 lib/schema.sql 与 scripts/seed.sql",
     });
   } catch (error) {
     const message = error instanceof Error ? error.message : "数据库连接失败";

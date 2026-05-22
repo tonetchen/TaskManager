@@ -1,8 +1,6 @@
 import { NextAuthOptions } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
 import {
-  addWorkspaceMember,
-  createUser,
   ensureUserWorkspace,
   getDefaultWorkspaceForUser,
   getMemberRole,
@@ -55,30 +53,18 @@ function mockAuthUser(mock: MockUser) {
   };
 }
 
-/** 仅在登录时同步 Mock 账号到数据库，不在 API 请求中自动写库 */
 async function resolveDbUser(username: string) {
   const mock = getMockUserByUsername(username);
   if (!mock) return null;
 
-  let dbUser =
+  const dbUser =
     (await getUserByUsername(username)) ??
     (await getUserByGithubId(mock.externalId));
-  if (!dbUser) {
-    dbUser = await createUser({
-      githubId: mock.externalId,
-      username: mock.username,
-      email: mock.email,
-      avatarUrl: null,
-    });
-  }
+  if (!dbUser) return null;
 
-  let workspace = await getDefaultWorkspaceForUser(dbUser.id);
-  if (!workspace) {
-    const ensured = await ensureUserWorkspace(dbUser.id);
-    workspace = ensured.workspace;
-  }
+  const workspace = await getDefaultWorkspaceForUser(dbUser.id);
+  if (!workspace) return null;
 
-  await addWorkspaceMember(workspace.id, dbUser.id, mock.role);
   const role = (await getMemberRole(workspace.id, dbUser.id)) ?? mock.role;
   return { dbUser, workspace, role };
 }
@@ -153,7 +139,7 @@ export const authOptions: NextAuthOptions = {
         try {
           const userId = parseInt(user.id, 10);
           const { workspace, role } = await ensureUserWorkspace(userId);
-          const effectiveRole = mock?.role ?? role;
+          const effectiveRole = role ?? mock?.role ?? "observer";
 
           token.id = user.id;
           token.username = user.name ?? undefined;
@@ -178,7 +164,7 @@ export const authOptions: NextAuthOptions = {
         try {
           const userId = parseInt(String(token.id), 10);
           const { workspace, role } = await ensureUserWorkspace(userId);
-          token.role = mock?.role ?? role;
+          token.role = role ?? mock?.role ?? "observer";
           token.workspaceId = workspace.id;
         } catch {
           if (mock) applyMockToToken(token, mock, String(token.id));

@@ -3,7 +3,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { ensureUserWorkspace, getUserByGithubId } from "@/lib/db";
 import { isDbConfigured } from "@/lib/db-config";
-import { getMockUserByUsername } from "@/lib/mock-auth";
+import { getMockUserByUsername, resolveMockModeUserId } from "@/lib/mock-auth";
 import { isMockDataMode, MOCK_WORKSPACE_ID } from "@/lib/mock-mode";
 import { assertPermission, hasPermission, Permission } from "@/lib/permissions";
 import { MemberRole } from "@/lib/types";
@@ -20,7 +20,7 @@ function mockAuthContext(session: {
   user: { id: string; username?: string; role?: string };
 }): AuthContext {
   const mock = getMockUserByUsername(session.user.username ?? "");
-  const userId = parseInt(session.user.id, 10) || mock?.externalId || 1;
+  const userId = resolveMockModeUserId(session.user.id, mock);
   return {
     userId,
     workspaceId: MOCK_WORKSPACE_ID,
@@ -62,7 +62,7 @@ export async function getAuthContext(): Promise<AuthContext | null> {
         return {
           userId: dbUser.id,
           workspaceId: workspace.id,
-          role: mock.role ?? role,
+          role: (role ?? mock.role) as MemberRole,
         };
       }
       return null;
@@ -73,7 +73,7 @@ export async function getAuthContext(): Promise<AuthContext | null> {
     return {
       userId,
       workspaceId: workspace.id,
-      role: (mock?.role ?? session.user.role ?? role) as MemberRole,
+      role: (role ?? mock?.role ?? session.user.role ?? "observer") as MemberRole,
     };
   } catch {
     return null;
@@ -105,7 +105,7 @@ export async function requireAuth(): Promise<AuthContext | NextResponse> {
   const ctx = await getAuthContext();
   if (!ctx) {
     return jsonError(
-      "未授权或数据库未就绪，请重新登录并执行 npm run db:init",
+      "未授权或数据库未就绪，请重新登录并执行 lib/schema.sql 与 scripts/seed.sql",
       401,
       "UNAUTHORIZED"
     );

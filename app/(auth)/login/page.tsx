@@ -3,6 +3,7 @@
 import { FormEvent, useEffect, useState } from "react";
 import { signIn } from "next-auth/react";
 import { useRouter } from "next/navigation";
+import { MOCK_USERS } from "@/lib/mock-auth";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -28,9 +29,9 @@ export default function LoginPage() {
           return;
         }
         if (d.seeded === false) {
-          setSeedWarning(
-            "数据库尚未导入 seed 数据，登录后将自动创建账号；完整项目/任务数据请执行 npm run db:init"
-          );
+          setSeedWarning("数据库尚未初始化，请在 Postgres 中执行 lib/schema.sql 与 scripts/seed.sql");
+        } else {
+          setSeedWarning(null);
         }
       })
       .catch(() => setDbWarning("无法检测服务状态"));
@@ -51,7 +52,7 @@ export default function LoginPage() {
 
     if (result?.error) {
       if (result.error === "CredentialsSignin") {
-        setError("用户名或密码错误（请使用 admin / admin666）");
+        setError("登录失败：请确认账号密码正确，且已执行 lib/schema.sql 与 scripts/seed.sql");
       } else {
         setError(`登录失败：${result.error}`);
       }
@@ -146,9 +147,11 @@ export default function LoginPage() {
           </button>
         </form>
         <p style={{ marginTop: 16, fontSize: 12, color: "var(--muted-light)", lineHeight: 1.6 }}>
-          admin / admin666 · member / member666 · observer / observer666
+          演示账号（密码在服务端校验，需已执行 seed.sql）：
           <br />
-          本地 Mock 模式：.env.local 设置 USE_MOCK_DATA=true，无需 Docker / Postgres
+          {MOCK_USERS.map((u) => `${u.username} / ${u.password}`).join(" · ")}
+          <br />
+          本地 Mock：.env.local 设置 USE_MOCK_DATA=true，无需 Postgres
         </p>
       </div>
     </div>

@@ -698,7 +698,7 @@ body{
       <div class="sidebar-user">
         <div class="sidebar-avatar">张</div>
         <div class="sidebar-user-info">
-          <div class="sidebar-user-name">张胜利</div>
+          <div class="sidebar-user-name">陈勋华</div>
           <div class="sidebar-user-role">管理员</div>
         </div>
       </div>
@@ -783,7 +783,7 @@ body{
           <div class="member-row">
             <div class="member-info">
               <div class="member-avatar" style="background:var(--accent)">张</div>
-              <div><div class="member-name">张胜利</div><div class="member-email">zhangshengli@jd.com</div></div>
+              <div><div class="member-name">陈勋华</div><div class="member-email">chenxunhua1@jd.com</div></div>
             </div>
             <div><span class="role-badge role-admin">管理员</span></div>
             <div class="due-date">2025-01-15</div>
@@ -951,7 +951,7 @@ body{
           <div class="log-item">
             <div class="log-dot"></div>
             <div class="log-content">
-              <div><strong>张胜利</strong> 创建了此任务</div>
+              <div><strong>陈勋华</strong> 创建了此任务</div>
               <div class="log-time">2025-05-20 11:00</div>
             </div>
           </div>
@@ -999,7 +999,7 @@ body{
           <div class="form-group">
             <label class="form-label">负责人</label>
             <select class="form-select">
-              <option>张胜利</option>
+              <option>陈勋华</option>
               <option>李明</option>
               <option>王芳</option>
               <option>赵刚</option>
@@ -1049,7 +1049,7 @@ const TASKS = [
     { id:'TASK-002-1', title:'图片 CDN 切换 + WebP 适配', status:'done', priority:'high', assignee:'赵刚', assigneeColor:'var(--success)', due:'2025-06-01' },
     { id:'TASK-002-2', title:'接口合并与缓存优化', status:'review', priority:'medium', assignee:'赵刚', assigneeColor:'var(--success)', due:'2025-06-08' },
   ]},
-  { id:'TASK-003', title:'支付流程安全审计', desc:'对接第三方支付安全检测工具，输出安全评估报告并修复高危漏洞。', status:'todo', priority:'high', assignee:'张胜利', assigneeColor:'var(--accent)', due:'2025-06-20', children:[] },
+  { id:'TASK-003', title:'支付流程安全审计', desc:'对接第三方支付安全检测工具，输出安全评估报告并修复高危漏洞。', status:'todo', priority:'high', assignee:'陈勋华', assigneeColor:'var(--accent)', due:'2025-06-20', children:[] },
   { id:'TASK-004', title:'订单列表分页重构', desc:'将订单列表从前端分页改为服务端分页，支持游标分页方式，解决大数据量下的性能瓶颈。', status:'progress', priority:'medium', assignee:'李明', assigneeColor:'var(--info)', due:'2025-06-18', children:[
     { id:'TASK-004-1', title:'后端游标分页 API 开发', status:'progress', priority:'medium', assignee:'李明', assigneeColor:'var(--info)', due:'2025-06-12' },
     { id:'TASK-004-2', title:'前端列表组件适配', status:'todo', priority:'low', assignee:'王芳', assigneeColor:'var(--warning)', due:'2025-06-16' },
@@ -1057,10 +1057,10 @@ const TASKS = [
   { id:'TASK-005', title:'搜索功能 Elasticsearch 迁移', desc:'将现有 MySQL LIKE 搜索替换为 ES，支持模糊搜索、拼音搜索和搜索建议。', status:'todo', priority:'medium', assignee:'赵刚', assigneeColor:'var(--success)', due:'2025-07-01', children:[] },
   { id:'TASK-006', title:'用户反馈系统搭建', desc:'开发内嵌反馈组件，支持文字+截图提交，自动关联当前页面和用户信息。', status:'done', priority:'low', assignee:'王芳', assigneeColor:'var(--warning)', due:'2025-05-25', children:[] },
   { id:'TASK-007', title:'移动端底部导航优化', desc:'重新设计底部 Tab Bar 交互，增加动效反馈，优化触控热区。', status:'progress', priority:'medium', assignee:'王芳', assigneeColor:'var(--warning)', due:'2025-06-22', children:[] },
-  { id:'TASK-008', title:'API 限流与熔断机制', desc:'基于 Sentinel 实现 API 限流，配合 CircuitBreaker 实现核心接口的熔断降级。', status:'todo', priority:'high', assignee:'张胜利', assigneeColor:'var(--accent)', due:'2025-06-28', children:[] },
+  { id:'TASK-008', title:'API 限流与熔断机制', desc:'基于 Sentinel 实现 API 限流，配合 CircuitBreaker 实现核心接口的熔断降级。', status:'todo', priority:'high', assignee:'陈勋华', assigneeColor:'var(--accent)', due:'2025-06-28', children:[] },
   { id:'TASK-009', title:'国际化多语言支持', desc:'接入 i18n 框架，支持中文、英文、日文三种语言切换，抽取所有硬编码文案。', status:'todo', priority:'low', assignee:'李明', assigneeColor:'var(--info)', due:'2025-07-15', children:[] },
   { id:'TASK-010', title:'数据看板 — 运营日报', desc:'搭建运营数据看板，展示 DAU、GMV、转化率等核心指标，支持日/周/月维度切换。', status:'review', priority:'medium', assignee:'赵刚', assigneeColor:'var(--success)', due:'2025-06-08', children:[] },
-  { id:'TASK-011', title:'消息推送系统集成', desc:'对接极光推送 SDK，支持站内信、Push 通知和短信三个通道的消息触达。', status:'progress', priority:'medium', assignee:'张胜利', assigneeColor:'var(--accent)', due:'2025-06-25', children:[] },
+  { id:'TASK-011', title:'消息推送系统集成', desc:'对接极光推送 SDK，支持站内信、Push 通知和短信三个通道的消息触达。', status:'progress', priority:'medium', assignee:'陈勋华', assigneeColor:'var(--accent)', due:'2025-06-25', children:[] },
   { id:'TASK-012', title:'自动化测试框架搭建', desc:'基于 Playwright 搭建 E2E 测试框架，覆盖核心购物流程（登录→搜索→下单→支付）。', status:'todo', priority:'low', assignee:'王芳', assigneeColor:'var(--warning)', due:'2025-07-10', children:[] },
 ];
 

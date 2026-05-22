@@ -33,7 +33,7 @@ npm run dev:clean
 cp .env.example .env.local
 # 设置 USE_MOCK_DATA=false 并取消注释 POSTGRES_URL
 docker compose up -d
-npm run db:init
+# 在 Postgres 中依次执行 lib/schema.sql、scripts/seed.sql
 npm run dev
 ```
 
@@ -46,13 +46,20 @@ npm run dev
 | `NEXTAUTH_URL` | 应用 URL |
 | `NEXTAUTH_SECRET` | NextAuth 密钥 |
 
-## Mock 登录账号（本地验证）
+## Mock 登录账号
+
+密码定义在 [`lib/mock-auth.ts`](lib/mock-auth.ts)，与 `scripts/seed.sql` 中 `users.github_id` 对应；角色以 `workspace_members.role` 为准。
 
 | 用户名 | 密码 | 角色 |
 |--------|------|------|
 | admin | admin666 | 管理员 |
-| member | member666 | 成员（可编辑/改状态，不可创建/删除） |
-| observer | observer666 | 观察者（只读） |
+| member | member666 | 成员 |
+| observer | observer666 | 观察者 |
+| 陈勋华 | cxh666 | 管理员 |
+| 李明 | liming666 | 成员 |
+| 王芳 | wangfang666 | 成员 |
+| 赵刚 | zhaogang666 | 成员 |
+| 陈静 | chenjing666 | 观察者 |
 
 账号定义见 [`lib/mock-auth.ts`](lib/mock-auth.ts)，后续接入三方登录时可替换 `lib/auth.ts` 中的 Provider。
 
@@ -71,9 +78,15 @@ npm run dev
 
 1. 导入 Git 仓库到 Vercel
 2. 创建 Vercel Postgres，绑定 `POSTGRES_URL`
-3. 配置环境变量
-4. 部署后执行 `npm run db:init`（或通过 Vercel CLI / SQL 控制台运行 `lib/schema.sql`）
-5. 配置 `NEXTAUTH_URL` 为线上域名
+3. 环境变量：`USE_MOCK_DATA=false`（或不设置）、`NEXTAUTH_URL`、`NEXTAUTH_SECRET`
+4. **部署后初始化数据库**（只需执行一次，在 Vercel Postgres SQL 控制台或 psql 中依次执行）：
+
+   1. [`lib/schema.sql`](lib/schema.sql) — 建表
+   2. [`scripts/seed.sql`](scripts/seed.sql) — 演示数据（用户、项目、任务）
+
+5. 配置 `NEXTAUTH_URL` 为线上域名，使用 **admin / admin666** 登录。
+
+本地开发保持 `USE_MOCK_DATA=true` 即可走内存 Mock，与服务器读库互不影响。
 
 ## 页面路由
 

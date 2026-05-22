@@ -12,7 +12,7 @@ import { MOCK_WORKSPACE_ID } from "./mock-mode";
 
 /** 原型中的团队成员（任务负责人 / 成员管理页） */
 export const MOCK_TEAM = [
-  { id: 1, name: "张胜利", email: "zhangshengli@jd.com", role: "admin" as MemberRole, joined: "2025-01-15" },
+  { id: 1, name: "陈勋华", email: "chenxunhua1@jd.com", role: "admin" as MemberRole, joined: "2025-01-15" },
   { id: 2, name: "李明", email: "liming@jd.com", role: "member" as MemberRole, joined: "2025-02-01" },
   { id: 3, name: "王芳", email: "wangfang@jd.com", role: "member" as MemberRole, joined: "2025-02-10" },
   { id: 4, name: "赵刚", email: "zhaogang@jd.com", role: "member" as MemberRole, joined: "2025-03-01" },
@@ -26,7 +26,7 @@ export const MOCK_PROJECTS: Project[] = [
 ];
 
 const ASSIGNEE_IDS: Record<string, number> = {
-  张胜利: 1,
+  陈勋华: 1,
   李明: 2,
   王芳: 3,
   赵刚: 4,
@@ -74,7 +74,7 @@ const ECOMMERCE_TASKS: ProtoTask[] = [
     desc: "对接第三方支付安全检测工具，输出安全评估报告并修复高危漏洞。",
     status: "todo",
     priority: "high",
-    assignee: "张胜利",
+    assignee: "陈勋华",
     due: "2025-06-20",
   },
   {
@@ -118,7 +118,7 @@ const ECOMMERCE_TASKS: ProtoTask[] = [
     desc: "基于 Sentinel 实现 API 限流，配合 CircuitBreaker 实现核心接口的熔断降级。",
     status: "todo",
     priority: "high",
-    assignee: "张胜利",
+    assignee: "陈勋华",
     due: "2025-06-28",
   },
   {
@@ -142,7 +142,7 @@ const ECOMMERCE_TASKS: ProtoTask[] = [
     desc: "对接极光推送 SDK，支持站内信、Push 通知和短信三个通道的消息触达。",
     status: "progress",
     priority: "medium",
-    assignee: "张胜利",
+    assignee: "陈勋华",
     due: "2025-06-25",
   },
   {
@@ -202,7 +202,7 @@ const MOBILE_APP_TASKS: ProtoTask[] = [
     desc: "商品详情与购物车支持弱网离线读写，冲突合并策略设计。",
     status: "todo",
     priority: "medium",
-    assignee: "张胜利",
+    assignee: "陈勋华",
     due: "2025-07-10",
   },
   {
@@ -238,7 +238,7 @@ const DATA_PLATFORM_TASKS: ProtoTask[] = [
     desc: "统一事件命名、属性字典与 SDK 上报格式，覆盖 Web / App 双端。",
     status: "progress",
     priority: "high",
-    assignee: "张胜利",
+    assignee: "陈勋华",
     due: "2025-06-22",
     children: [
       { title: "埋点文档与校验工具", status: "done", priority: "medium", assignee: "王芳", due: "2025-06-01" },
@@ -266,7 +266,7 @@ const DATA_PLATFORM_TASKS: ProtoTask[] = [
     desc: "行级 + 列级权限控制，对接组织架构与角色继承。",
     status: "progress",
     priority: "high",
-    assignee: "张胜利",
+    assignee: "陈勋华",
     due: "2025-06-28",
   },
   {
@@ -298,7 +298,7 @@ const DATA_PLATFORM_TASKS: ProtoTask[] = [
     desc: "统一对外数据服务入口，限流、鉴权、审计日志一体化。",
     status: "progress",
     priority: "high",
-    assignee: "张胜利",
+    assignee: "陈勋华",
     due: "2025-06-30",
   },
 ];
