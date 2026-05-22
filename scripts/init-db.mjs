@@ -29,14 +29,8 @@ async function main() {
   const seedPath = path.join(__dirname, "seed.sql");
   if (fs.existsSync(seedPath)) {
     const seed = fs.readFileSync(seedPath, "utf-8");
-    const statements = seed
-      .split(";")
-      .map((s) => s.trim())
-      .filter((s) => s && !s.startsWith("--"));
-    for (const stmt of statements) {
-      await pool.query(stmt);
-    }
-    console.log("Seed data applied (if any).");
+    await pool.query(seed);
+    console.log("Seed data applied.");
   }
 
   await pool.end();

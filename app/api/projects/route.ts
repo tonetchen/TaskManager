@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { jsonError, requireAuth } from "@/lib/api-auth";
-import { ensureDefaultProject, listProjects } from "@/lib/db";
+import { listProjects } from "@/lib/db";
 import { isMockDataMode } from "@/lib/mock-mode";
 import { getMockStore } from "@/lib/mock-store";
 
@@ -17,7 +17,6 @@ export async function GET() {
       });
     }
 
-    await ensureDefaultProject(ctx.workspaceId);
     const projects = await listProjects(ctx.workspaceId);
     return NextResponse.json({ projects });
   } catch (error) {

@@ -217,36 +217,6 @@ export async function getProjectById(
   };
 }
 
-export async function ensureDefaultProject(workspaceId: number): Promise<Project> {
-  const existing = await sql`
-    SELECT id, workspace_id, name
-    FROM projects
-    WHERE workspace_id = ${workspaceId}
-    ORDER BY id ASC
-    LIMIT 1
-  `;
-  if (existing.rows.length > 0) {
-    const row = existing.rows[0];
-    return {
-      id: row.id as number,
-      workspace_id: row.workspace_id as number,
-      name: row.name as string,
-    };
-  }
-
-  const created = await sql`
-    INSERT INTO projects (workspace_id, name)
-    VALUES (${workspaceId}, '默认项目')
-    RETURNING id, workspace_id, name
-  `;
-  const row = created.rows[0];
-  return {
-    id: row.id as number,
-    workspace_id: row.workspace_id as number,
-    name: row.name as string,
-  };
-}
-
 function mapTaskRow(row: Record<string, unknown>): Task {
   return {
     id: row.id as number,
@@ -340,7 +310,7 @@ export async function createTask(
   createdBy: number,
   input: CreateTaskInput
 ): Promise<Task> {
-  const projectId = input.projectId ?? (await ensureDefaultProject(workspaceId)).id;
+  const projectId = input.projectId ?? 1;
   const result = await sql`
     INSERT INTO tasks (
       workspace_id, project_id, parent_id, title, description, priority, status,
@@ -488,12 +458,10 @@ export async function ensureUserWorkspace(userId: number): Promise<{
   const existing = await getDefaultWorkspaceForUser(userId);
   if (existing) {
     const role = await getMemberRole(existing.id, userId);
-    await ensureDefaultProject(existing.id);
     return { workspace: existing, role: role ?? "observer" };
   }
 
   const workspace = await createWorkspace("默认工作区", userId);
   await addWorkspaceMember(workspace.id, userId, "admin");
-  await ensureDefaultProject(workspace.id);
   return { workspace, role: "admin" };
 }

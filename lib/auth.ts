@@ -1,10 +1,9 @@
 import { NextAuthOptions } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
 import {
-  addWorkspaceMember,
-  createUser,
   ensureUserWorkspace,
   getDefaultWorkspaceForUser,
+  getMemberRole,
   getUserByGithubId,
   getUserByUsername,
 } from "./db";
@@ -58,28 +57,16 @@ async function resolveDbUser(username: string) {
   const mock = getMockUserByUsername(username);
   if (!mock) return null;
 
-  let dbUser = await getUserByUsername(mock.username);
-  if (!dbUser) {
-    dbUser = await getUserByGithubId(mock.externalId);
-  }
-  if (!dbUser) {
-    dbUser = await createUser({
-      githubId: mock.externalId,
-      username: mock.username,
-      email: mock.email,
-      avatarUrl: null,
-    });
-  }
+  const dbUser =
+    (await getUserByUsername(username)) ??
+    (await getUserByGithubId(mock.externalId));
+  if (!dbUser) return null;
 
   const workspace = await getDefaultWorkspaceForUser(dbUser.id);
-  if (!workspace) {
-    const { workspace: ws } = await ensureUserWorkspace(dbUser.id);
-    await addWorkspaceMember(ws.id, dbUser.id, mock.role);
-    return { dbUser, workspace: ws, role: mock.role };
-  }
+  if (!workspace) return null;
 
-  await addWorkspaceMember(workspace.id, dbUser.id, mock.role);
-  return { dbUser, workspace, role: mock.role };
+  const role = (await getMemberRole(workspace.id, dbUser.id)) ?? mock.role;
+  return { dbUser, workspace, role };
 }
 
 function applyMockToToken(
@@ -141,7 +128,7 @@ export const authOptions: NextAuthOptions = {
       if (user?.id) {
         const mock = getMockUserByUsername(user.name ?? "");
 
-        if (isMockSessionUser(user.id, mock) && mock) {
+        if (isMockDataMode() && isMockSessionUser(user.id, mock) && mock) {
           return applyMockToToken(token, mock, user.id);
         }
 
@@ -153,10 +140,6 @@ export const authOptions: NextAuthOptions = {
           const userId = parseInt(user.id, 10);
           const { workspace, role } = await ensureUserWorkspace(userId);
           const effectiveRole = mock?.role ?? role;
-
-          if (mock) {
-            await addWorkspaceMember(workspace.id, userId, mock.role);
-          }
 
           token.id = user.id;
           token.username = user.name ?? undefined;
@@ -172,7 +155,7 @@ export const authOptions: NextAuthOptions = {
         }
       } else if (token.id && token.username) {
         const mock = getMockUserByUsername(token.username as string);
-        if (isMockSessionUser(String(token.id), mock) && mock) {
+        if (isMockDataMode() && isMockSessionUser(String(token.id), mock) && mock) {
           return applyMockToToken(token, mock, String(token.id));
         }
         if (!shouldUseDatabase() && mock) {
