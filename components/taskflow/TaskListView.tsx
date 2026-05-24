@@ -91,6 +91,131 @@ function TaskRow({
   );
 }
 
+function MobileTaskCard({
+  task,
+  isChecked,
+  isSubtask,
+  hasChildren,
+  isExpanded,
+  done,
+  total,
+  onToggleSelect,
+  onToggleExpand,
+  onOpenDetail,
+}: {
+  task: Task;
+  isChecked: boolean;
+  isSubtask?: boolean;
+  hasChildren?: boolean;
+  isExpanded?: boolean;
+  done?: number;
+  total?: number;
+  onToggleSelect?: (e: MouseEvent) => void;
+  onToggleExpand?: (e: MouseEvent) => void;
+  onOpenDetail: () => void;
+}) {
+  const assignee = task.assignee_username ?? "未分配";
+  const status = isSubtask ? API_TO_UI_STATUS[task.status] : uiStatusOf(task);
+
+  return (
+    <article
+      className={`task-card${isSubtask ? " task-card--sub" : ""}`}
+      onClick={onOpenDetail}
+      data-id={task.id}
+    >
+      <div className="task-card-header">
+        {!isSubtask && onToggleSelect ? (
+          <div
+            className={`row-check${isChecked ? " checked" : ""}`}
+            onClick={onToggleSelect}
+          >
+            {isChecked && <IconRowCheck />}
+          </div>
+        ) : null}
+        <div className="task-card-body">
+          <div className="task-card-title-row">
+            {!isSubtask && (
+              <div
+                className={`task-expand${hasChildren ? " has-children" : ""}`}
+                onClick={onToggleExpand}
+              >
+                {hasChildren ? (isExpanded ? "▾" : "▸") : ""}
+              </div>
+            )}
+            <span className="task-title-text">{task.title}</span>
+            {!isSubtask && hasChildren && total! > 0 && (
+              <span className="task-subtask-indicator">
+                <IconSubtask />
+                {done}/{total}
+              </span>
+            )}
+          </div>
+          <div className="task-card-meta">
+            <StatusBadge status={status} />
+            <PriorityBadge priority={task.priority} />
+            <Assignee name={assignee} />
+            <span className={`due-date${isOverdue(task.due_date) ? " overdue" : ""}`}>
+              {formatDate(task.due_date)}
+            </span>
+          </div>
+        </div>
+      </div>
+    </article>
+  );
+}
+
+function renderTaskItems(
+  tasks: Task[],
+  selected: Set<number>,
+  expanded: Set<number>,
+  onToggleSelect: (id: number) => void,
+  onToggleExpand: (id: number) => void,
+  onOpenDetail: (task: Task) => void,
+  variant: "table" | "card"
+) {
+  const Row = variant === "table" ? TaskRow : MobileTaskCard;
+
+  return tasks.map((t) => {
+    const hasChildren = (t.subtasks?.length ?? 0) > 0;
+    const isExpanded = expanded.has(t.id);
+    const isChecked = selected.has(t.id);
+    const { done, total } = countSubtasksDone(t);
+
+    return (
+      <Fragment key={t.id}>
+        <Row
+          task={t}
+          isChecked={isChecked}
+          hasChildren={hasChildren}
+          isExpanded={isExpanded}
+          done={done}
+          total={total}
+          onToggleSelect={(e) => {
+            e.stopPropagation();
+            onToggleSelect(t.id);
+          }}
+          onToggleExpand={(e) => {
+            e.stopPropagation();
+            if (hasChildren) onToggleExpand(t.id);
+          }}
+          onOpenDetail={() => onOpenDetail(t)}
+        />
+        {hasChildren &&
+          isExpanded &&
+          t.subtasks!.map((c) => (
+            <Row
+              key={c.id}
+              task={c}
+              isChecked={false}
+              isSubtask
+              onOpenDetail={() => onOpenDetail(c)}
+            />
+          ))}
+      </Fragment>
+    );
+  });
+}
+
 export function TaskListView({
   tasks,
   selected,
@@ -107,60 +232,44 @@ export function TaskListView({
   onOpenDetail: (task: Task) => void;
 }) {
   return (
-    <div className="task-table-wrap">
-      <table className="task-table">
-      <thead>
-        <tr>
-          <th style={{ width: 32 }} />
-          <th>任务</th>
-          <th style={{ width: 110 }}>状态</th>
-          <th style={{ width: 90 }}>优先级</th>
-          <th style={{ width: 120 }}>负责人</th>
-          <th style={{ width: 100 }}>截止日期</th>
-        </tr>
-      </thead>
-      <tbody>
-        {tasks.map((t) => {
-          const hasChildren = (t.subtasks?.length ?? 0) > 0;
-          const isExpanded = expanded.has(t.id);
-          const isChecked = selected.has(t.id);
-          const { done, total } = countSubtasksDone(t);
+    <>
+      <div className="task-table-wrap task-list-desktop">
+        <table className="task-table">
+          <thead>
+            <tr>
+              <th style={{ width: 32 }} />
+              <th>任务</th>
+              <th style={{ width: 110 }}>状态</th>
+              <th style={{ width: 90 }}>优先级</th>
+              <th style={{ width: 120 }}>负责人</th>
+              <th style={{ width: 100 }}>截止日期</th>
+            </tr>
+          </thead>
+          <tbody>
+            {renderTaskItems(
+              tasks,
+              selected,
+              expanded,
+              onToggleSelect,
+              onToggleExpand,
+              onOpenDetail,
+              "table"
+            )}
+          </tbody>
+        </table>
+      </div>
 
-          return (
-            <Fragment key={t.id}>
-              <TaskRow
-                task={t}
-                isChecked={isChecked}
-                hasChildren={hasChildren}
-                isExpanded={isExpanded}
-                done={done}
-                total={total}
-                onToggleSelect={(e) => {
-                  e.stopPropagation();
-                  onToggleSelect(t.id);
-                }}
-                onToggleExpand={(e) => {
-                  e.stopPropagation();
-                  if (hasChildren) onToggleExpand(t.id);
-                }}
-                onOpenDetail={() => onOpenDetail(t)}
-              />
-              {hasChildren &&
-                isExpanded &&
-                t.subtasks!.map((c) => (
-                  <TaskRow
-                    key={c.id}
-                    task={c}
-                    isChecked={false}
-                    isSubtask
-                    onOpenDetail={() => onOpenDetail(c)}
-                  />
-                ))}
-            </Fragment>
-          );
-        })}
-      </tbody>
-    </table>
-    </div>
+      <div className="task-card-list task-list-mobile">
+        {renderTaskItems(
+          tasks,
+          selected,
+          expanded,
+          onToggleSelect,
+          onToggleExpand,
+          onOpenDetail,
+          "card"
+        )}
+      </div>
+    </>
   );
 }

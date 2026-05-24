@@ -8,6 +8,7 @@ import {
   getTasksWithSubtasks,
   listTasks,
 } from "@/lib/services/task-service";
+import { assertTaskTitleAndAssignee } from "@/lib/task-form-validation";
 import { CreateTaskInput, TaskPriority, TaskStatus } from "@/lib/types";
 
 function handleServiceError(error: unknown) {
@@ -79,8 +80,11 @@ export async function POST(request: NextRequest) {
 
   try {
     const body = (await request.json()) as CreateTaskInput;
-    if (!body.title?.trim()) {
-      return jsonError("Title is required", 422, "VALIDATION_ERROR");
+    try {
+      assertTaskTitleAndAssignee(body.title, body.assigneeId);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "VALIDATION";
+      return jsonError(message.replace(/^VALIDATION:\s*/, ""), 422, "VALIDATION_ERROR");
     }
 
     const projectId = body.projectId ?? 1;

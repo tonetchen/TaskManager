@@ -8,6 +8,8 @@ import {
   listActivityLogs,
   updateTaskWithValidation,
 } from "@/lib/services/task-service";
+import { getTaskById } from "@/lib/db";
+import { assertTaskTitleAndAssignee } from "@/lib/task-form-validation";
 import { UpdateTaskInput } from "@/lib/types";
 
 function handleServiceError(error: unknown) {
@@ -70,6 +72,20 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
       const store = getMockStore();
       const task = store.updateTask(taskId, ctx.userId, body);
       return NextResponse.json({ task, mock: true });
+    }
+
+    const existing = await getTaskById(taskId);
+    if (!existing || existing.workspace_id !== ctx.workspaceId) {
+      return jsonError("Task not found", 404, "NOT_FOUND");
+    }
+    const nextTitle = body.title !== undefined ? body.title : existing.title;
+    const nextAssigneeId =
+      body.assigneeId !== undefined ? body.assigneeId : existing.assignee_id;
+    try {
+      assertTaskTitleAndAssignee(nextTitle, nextAssigneeId);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "VALIDATION";
+      return jsonError(message.replace(/^VALIDATION:\s*/, ""), 422, "VALIDATION_ERROR");
     }
 
     const task = await updateTaskWithValidation(

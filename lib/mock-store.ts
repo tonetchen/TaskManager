@@ -7,6 +7,7 @@ import {
 } from "./mock-data";
 import { MOCK_WORKSPACE_ID } from "./mock-mode";
 import { assertTransition } from "./task-status";
+import { assertTaskTitleAndAssignee } from "./task-form-validation";
 import {
   CreateTaskInput,
   MemberRole,
@@ -138,6 +139,8 @@ class MockStore {
   }
 
   createTask(userId: number, input: CreateTaskInput): Task {
+    assertTaskTitleAndAssignee(input.title, input.assigneeId);
+
     const projectId = input.projectId ?? 1;
     if (!getMockProjectById(projectId)) {
       throw new Error("NOT_FOUND: project");
@@ -201,6 +204,11 @@ class MockStore {
     if (idx === -1) throw new Error("NOT_FOUND: task");
 
     const existing = this.tasks[idx];
+    const nextTitle = input.title !== undefined ? input.title : existing.title;
+    const nextAssigneeId =
+      input.assigneeId !== undefined ? input.assigneeId : existing.assignee_id;
+    assertTaskTitleAndAssignee(nextTitle, nextAssigneeId);
+
     if (input.status && input.status !== existing.status) {
       assertTransition(existing.status, input.status);
     }

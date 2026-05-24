@@ -11,6 +11,7 @@ import {
 } from "@/lib/db";
 import { assertPermission } from "@/lib/permissions";
 import { assertTransition } from "@/lib/task-status";
+import { assertTaskTitleAndAssignee } from "@/lib/task-form-validation";
 import { toIsoDateString } from "@/lib/taskflow-utils";
 import {
   CreateTaskInput,
@@ -55,6 +56,7 @@ export async function createTaskWithValidation(
   input: CreateTaskInput
 ): Promise<Task> {
   assertPermission(role, "task:create");
+  assertTaskTitleAndAssignee(input.title, input.assigneeId);
 
   if (input.parentId) {
     const parent = await getTaskById(input.parentId);
@@ -91,6 +93,11 @@ export async function updateTaskWithValidation(
   if (!existing || existing.workspace_id !== workspaceId) {
     throw new Error("NOT_FOUND: task");
   }
+
+  const nextTitle = input.title !== undefined ? input.title : existing.title;
+  const nextAssigneeId =
+    input.assigneeId !== undefined ? input.assigneeId : existing.assignee_id;
+  assertTaskTitleAndAssignee(nextTitle, nextAssigneeId);
 
   if (input.status && input.status !== existing.status) {
     assertPermission(role, "task:change_status");

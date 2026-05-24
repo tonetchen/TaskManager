@@ -9,6 +9,7 @@ import {
   formatTaskId,
   toIsoDateString,
 } from "@/lib/taskflow-utils";
+import { validateTaskTitleAndAssignee } from "@/lib/task-form-validation";
 import { IconClose } from "./icons";
 
 export interface TaskFormData {
@@ -78,7 +79,11 @@ export function TaskModal({
   }, [open, mode, initial, defaultStatus]);
 
   async function handleSubmit() {
-    if (!form.title.trim()) return;
+    const validationError = validateTaskTitleAndAssignee(form.title, form.assigneeId);
+    if (validationError) {
+      window.alert(validationError);
+      return;
+    }
     setLoading(true);
     setError(null);
     try {
@@ -157,7 +162,7 @@ export function TaskModal({
           </div>
           <div className="form-row">
             <div className="form-group">
-              <label className="form-label">负责人</label>
+              <label className="form-label">负责人 *</label>
               <select
                 className="form-select"
                 value={form.assigneeId ?? ""}
@@ -168,7 +173,9 @@ export function TaskModal({
                   })
                 }
               >
-                <option value="">未分配</option>
+                <option value="" disabled>
+                  请选择负责人
+                </option>
                 {members.map((m) => (
                   <option key={m.user_id} value={m.user_id}>
                     {m.username}
@@ -228,7 +235,7 @@ export function TaskModal({
           <button
             type="button"
             className="btn btn-primary"
-            disabled={loading || !form.title.trim()}
+            disabled={loading}
             onClick={handleSubmit}
           >
             {mode === "create" ? "创建任务" : "保存修改"}
