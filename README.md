@@ -2,6 +2,17 @@
 
 任务管理系统 — Next.js 全栈框架，支持 PC 与移动端响应式布局。
 
+## 在线演示
+
+> 部署到 Vercel 后，将下方地址替换为实际域名并提交。
+
+| 项 | 说明 |
+|----|------|
+| 访问地址 | `https://<your-app>.vercel.app` |
+| 演示账号 | `admin` / `admin666`（管理员） |
+| 其他角色 | `member` / `member666`、`observer` / `observer666` |
+| 数据库 | 线上需 `USE_MOCK_DATA=false`，并执行 [`scripts/schema.sql`](scripts/schema.sql) + [`scripts/seed.sql`](scripts/seed.sql) |
+
 ## 技术栈
 
 - Next.js 15 App Router + React 19 + TypeScript
@@ -94,9 +105,9 @@ npm run dev
 
 - `/` — 任务管理（看板 / 列表，支持拖拽改状态）
 - `/members` — 成员管理
-- `/login` — Mock 账号登录
+- `/login` — 演示账号登录
 
-移动端适配说明见 [doc/mobile-adaptation.md](doc/mobile-adaptation.md)（抽屉导航、看板横滑、列表卡片化等）。
+移动端适配说明见 [doc/mobile-adaptation.md](doc/mobile-adaptation.md)（抽屉导航、看板纵向分列、列表卡片化等）。
 
 UI 数据层使用 [`lib/api-client.ts`](lib/api-client.ts)，与页面组件解耦。
 

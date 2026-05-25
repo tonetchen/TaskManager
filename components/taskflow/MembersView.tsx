@@ -3,7 +3,6 @@
 import { MemberRole, WorkspaceMember } from "@/lib/types";
 import { avatarColor, avatarInitial, formatDate } from "@/lib/taskflow-utils";
 import { RoleBadge } from "./badges";
-import { IconClose, IconSettings } from "./icons";
 import { LoadingSpinner } from "./LoadingSpinner";
 
 export function MembersPageView({
@@ -34,7 +33,6 @@ export function MembersPageView({
             <div>成员</div>
             <div>角色</div>
             <div>加入时间</div>
-            <div>操作</div>
           </div>
           {members.map((m) => (
             <MemberRow
@@ -167,20 +165,6 @@ function MemberRow({
         )}
       </div>
       <div className="due-date">{formatDate(member.created_at)}</div>
-      <div className="member-actions">
-        {canManage && (
-          <>
-            <button type="button" className="btn-icon" title="设置">
-              <IconSettings />
-            </button>
-            {member.role !== "admin" && (
-              <button type="button" className="btn-icon" title="移除">
-                <IconClose />
-              </button>
-            )}
-          </>
-        )}
-      </div>
     </div>
   );
 }

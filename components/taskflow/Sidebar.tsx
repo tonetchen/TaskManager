@@ -4,6 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { signOut, useSession } from "next-auth/react";
+import { useEffect, useRef, useState } from "react";
 import { IconMembers, IconTasks } from "./icons";
 import { useProject } from "./project-context";
 import { MEMBER_ROLE_LABELS } from "@/lib/types";
@@ -99,6 +100,25 @@ export function Sidebar({
   const role = (session?.user?.role ?? "observer") as MemberRole;
   const displayName = session?.user?.username ?? "用户";
   const avatarUrl = session?.user?.avatar_url ?? null;
+  const [userMenuOpen, setUserMenuOpen] = useState(false);
+  const userMenuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!userMenuOpen) return;
+
+    function handlePointerDown(event: MouseEvent | TouchEvent) {
+      if (!userMenuRef.current?.contains(event.target as Node)) {
+        setUserMenuOpen(false);
+      }
+    }
+
+    document.addEventListener("mousedown", handlePointerDown);
+    document.addEventListener("touchstart", handlePointerDown);
+    return () => {
+      document.removeEventListener("mousedown", handlePointerDown);
+      document.removeEventListener("touchstart", handlePointerDown);
+    };
+  }, [userMenuOpen]);
 
   function handleNavClick() {
     onNavigate?.();
@@ -177,21 +197,42 @@ export function Sidebar({
       </div>
 
       <div className="sidebar-bottom">
-        <div
-          className="sidebar-user"
-          style={{ cursor: "pointer" }}
-          onClick={() => signOut({ callbackUrl: "/login" })}
-          title="点击退出登录"
-        >
-          <UserAvatar
-            name={displayName}
-            avatarUrl={avatarUrl}
-            className="sidebar-avatar"
-          />
-          <div className="sidebar-user-info">
-            <div className="sidebar-user-name">{displayName}</div>
-            <div className="sidebar-user-role">{MEMBER_ROLE_LABELS[role]}</div>
-          </div>
+        <div className="sidebar-user-wrap" ref={userMenuRef}>
+          <button
+            type="button"
+            className={`sidebar-user${userMenuOpen ? " open" : ""}`}
+            aria-expanded={userMenuOpen}
+            aria-haspopup="menu"
+            onClick={() => setUserMenuOpen((open) => !open)}
+          >
+            <UserAvatar
+              name={displayName}
+              avatarUrl={avatarUrl}
+              className="sidebar-avatar"
+            />
+            <div className="sidebar-user-info">
+              <div className="sidebar-user-name">{displayName}</div>
+              <div className="sidebar-user-role">{MEMBER_ROLE_LABELS[role]}</div>
+            </div>
+            <span className="sidebar-user-chevron" aria-hidden>
+              ▾
+            </span>
+          </button>
+          {userMenuOpen ? (
+            <div className="sidebar-user-menu" role="menu">
+              <button
+                type="button"
+                role="menuitem"
+                className="sidebar-user-menu-item sidebar-user-menu-item--danger"
+                onClick={() => {
+                  setUserMenuOpen(false);
+                  void signOut({ callbackUrl: "/login" });
+                }}
+              >
+                退出登录
+              </button>
+            </div>
+          ) : null}
         </div>
       </div>
     </aside>

@@ -396,6 +396,7 @@ export function TasksApp() {
                 tasks={rootTasks}
                 selected={selected}
                 expanded={expanded}
+                canBatchSelect={canChangeStatus}
                 onToggleSelect={(id) => {
                   const next = new Set(selected);
                   if (next.has(id)) next.delete(id);

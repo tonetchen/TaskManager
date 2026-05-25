@@ -1,11 +1,10 @@
-@import "./taskflow.css";
-
 html,
 body {
   height: 100%;
 }
 
-body {
+/* 主应用壳固定视口；登录页等 auth 路由允许滚动 */
+body:has(.app) {
   overflow: hidden;
 }
 

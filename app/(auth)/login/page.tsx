@@ -13,11 +13,13 @@ export default function LoginPage() {
   const [dbWarning, setDbWarning] = useState<string | null>(null);
   const [seedWarning, setSeedWarning] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [dataMode, setDataMode] = useState<"mock" | "db" | null>(null);
 
   useEffect(() => {
     fetch("/api/health")
       .then((r) => r.json())
       .then((d) => {
+        setDataMode(d.mock ? "mock" : "db");
         if (d.mock) {
           setDbWarning(null);
           setSeedWarning(null);
@@ -86,7 +88,12 @@ export default function LoginPage() {
           TaskFlow
         </div>
         <p style={{ color: "var(--muted)", fontSize: 14, marginBottom: 24 }}>
-          任务管理系统 — Mock 登录
+          任务管理系统
+          {dataMode === "mock"
+            ? " — Mock 演示模式"
+            : dataMode === "db"
+              ? " — 数据库模式"
+              : ""}
         </p>
 
         {seedWarning && !dbWarning && (

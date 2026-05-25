@@ -18,6 +18,9 @@ export function BatchBar({
       <span>
         已选择 <span className="batch-count">{count}</span> 个任务
       </span>
+      <button type="button" onClick={() => onBatchStatus("todo")}>
+        → 待开始
+      </button>
       <button type="button" onClick={() => onBatchStatus("progress")}>
         → 进行中
       </button>

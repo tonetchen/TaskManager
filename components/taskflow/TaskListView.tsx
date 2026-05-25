@@ -171,7 +171,8 @@ function renderTaskItems(
   onToggleSelect: (id: number) => void,
   onToggleExpand: (id: number) => void,
   onOpenDetail: (task: Task) => void,
-  variant: "table" | "card"
+  variant: "table" | "card",
+  canBatchSelect: boolean
 ) {
   const Row = variant === "table" ? TaskRow : MobileTaskCard;
 
@@ -180,6 +181,12 @@ function renderTaskItems(
     const isExpanded = expanded.has(t.id);
     const isChecked = selected.has(t.id);
     const { done, total } = countSubtasksDone(t);
+    const toggleSelect = canBatchSelect
+      ? (e: MouseEvent) => {
+          e.stopPropagation();
+          onToggleSelect(t.id);
+        }
+      : undefined;
 
     return (
       <Fragment key={t.id}>
@@ -190,10 +197,7 @@ function renderTaskItems(
           isExpanded={isExpanded}
           done={done}
           total={total}
-          onToggleSelect={(e) => {
-            e.stopPropagation();
-            onToggleSelect(t.id);
-          }}
+          onToggleSelect={toggleSelect}
           onToggleExpand={(e) => {
             e.stopPropagation();
             if (hasChildren) onToggleExpand(t.id);
@@ -220,6 +224,7 @@ export function TaskListView({
   tasks,
   selected,
   expanded,
+  canBatchSelect = false,
   onToggleSelect,
   onToggleExpand,
   onOpenDetail,
@@ -227,6 +232,7 @@ export function TaskListView({
   tasks: Task[];
   selected: Set<number>;
   expanded: Set<number>;
+  canBatchSelect?: boolean;
   onToggleSelect: (id: number) => void;
   onToggleExpand: (id: number) => void;
   onOpenDetail: (task: Task) => void;
@@ -234,10 +240,10 @@ export function TaskListView({
   return (
     <>
       <div className="task-table-wrap task-list-desktop">
-        <table className="task-table">
+        <table className={`task-table${canBatchSelect ? "" : " task-table--no-select"}`}>
           <thead>
             <tr>
-              <th style={{ width: 32 }} />
+              {canBatchSelect ? <th style={{ width: 32 }} /> : null}
               <th>任务</th>
               <th style={{ width: 110 }}>状态</th>
               <th style={{ width: 90 }}>优先级</th>
@@ -253,7 +259,8 @@ export function TaskListView({
               onToggleSelect,
               onToggleExpand,
               onOpenDetail,
-              "table"
+              "table",
+              canBatchSelect
             )}
           </tbody>
         </table>
@@ -267,7 +274,8 @@ export function TaskListView({
           onToggleSelect,
           onToggleExpand,
           onOpenDetail,
-          "card"
+          "card",
+          canBatchSelect
         )}
       </div>
     </>

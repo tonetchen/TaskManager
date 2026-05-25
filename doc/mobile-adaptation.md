@@ -2,7 +2,7 @@
 
 ## 设计目标
 
-本项目的移动端方案通过断点切换布局结构（抽屉导航、看板横滑、列表卡片化、全屏详情等）实现，不使用 `transform: scale()` 整体缩放。
+本项目的移动端方案通过断点切换布局结构（抽屉导航、看板纵向堆叠、列表卡片化、全屏详情等）实现，**不使用** `transform: scale()` 整体缩放，**避免页面级横向滚动条**。
 
 ## 断点与 Design Token
 
@@ -12,7 +12,7 @@
 | `--safe-bottom` | `env(safe-area-inset-bottom, 0px)` | iOS 安全区 |
 | Desktop | `>= 1024px` | 默认桌面布局 |
 | Tablet | `768px – 1023px` | 看板 2 列网格 |
-| Mobile | `<= 767px` | 抽屉 + 卡片 + 看板横滑 |
+| Mobile | `<= 767px` | 抽屉 + 卡片 + 看板纵向分列 |
 | Mobile SM | `<= 480px` | 视图切换仅图标、批量栏更紧凑 |
 
 Viewport 配置见 [`app/layout.tsx`](../app/layout.tsx)：`width=device-width, initial-scale=1, viewport-fit=cover`。
@@ -22,15 +22,15 @@ Viewport 配置见 [`app/layout.tsx`](../app/layout.tsx)：`width=device-width, 
 | 页面 / 模块 | Desktop | Mobile (<=767px) |
 |-------------|---------|------------------|
 | 登录 | 居中卡片 400px | 全宽卡片 + 16px 边距，输入框 16px 防 iOS 缩放 |
-| 侧栏 | 固定 240px | 左侧抽屉 + 遮罩，汉堡菜单打开 |
-| 任务顶栏 | 标题 \| 筛选 \| 操作 | 两行：标题+操作 / 筛选横滑 |
-| 看板 | 4 列网格 | 横向 scroll-snap，每列约 88vw |
-| 列表 | 表格（与原型一致） | 横向滚动保留完整列 |
+| 侧栏 | 固定 240px | 左侧抽屉 + 遮罩，汉堡菜单打开；账号区点击弹出菜单再退出 |
+| 任务顶栏 | 标题 \| 筛选 \| 操作 | 两行：标题+操作 / 筛选换行 |
+| 看板 | 4 列网格 | **四列纵向堆叠**，列内卡片可滚动 |
+| 列表 | 表格 | **卡片列表**（状态/优先级/负责人/截止日期） |
 | 详情面板 | 420px 右侧滑入 | 100% 全屏宽 |
 | 弹窗 | 居中 modal | 近全屏，表单单列 |
 | 批量操作栏 | 底部居中浮条 | 贴底全宽，支持 safe-area |
 | 成员列表 | 4 列表格 | 卡片堆叠，表头隐藏 |
-| 权限矩阵 | 表格 | 横向滚动容器 |
+| 权限矩阵 | 表格 | 横向滚动容器（仅此区域允许局部横滑） |
 
 ## 交互说明
 
@@ -40,36 +40,33 @@ Viewport 配置见 [`app/layout.tsx`](../app/layout.tsx)：`width=device-width, 
 - 点击遮罩或导航链接 → 关闭
 - 路由变化时自动关闭（`usePathname`）
 
-### 看板横滑
+### 看板（移动端）
 
-- 四列状态改为水平滚动，每列 `scroll-snap-align: start`
-- 触控拖拽（`@dnd-kit` + `PointerSensor`）在移动端继续可用
-- 列内卡片仍支持排序与跨列改状态
+- 四个状态列改为**纵向排列**，整页纵向滚动
+- 每列内部任务列表 `max-height: min(420px, 50vh)` 可滚动
+- 触控拖拽（`@dnd-kit` + `PointerSensor`）继续可用
 
-### 列表表格
+### 列表（移动端）
 
-- 桌面端与原型一致：`<table class="task-table">`，含勾选、展开、状态/优先级 badge、负责人、截止日期
-- 移动端表格横向滚动（`min-width: 680px`），避免字段转置卡片
+- 桌面端：`<table class="task-table">`
+- 移动端：`.task-list-mobile` 卡片，`.task-list-desktop` 隐藏
+- 无表格 `min-width` 横滑
 
-### 筛选下拉
+### 筛选
 
-- 移动端下拉菜单全宽对齐筛选栏
-- 点击外部区域关闭菜单
+- 筛选 chips **换行**（`flex-wrap`），不用横向滚动
 
 ## 实现文件索引
 
 | 文件 | 改动 |
 |------|------|
 | [`app/layout.tsx`](../app/layout.tsx) | Viewport 元信息 |
-| [`app/taskflow.css`](../app/taskflow.css) | 断点、`@media` 规则、mobile-header、抽屉样式 |
-| [`app/(dashboard)/layout.tsx`](../app/(dashboard)/layout.tsx) | 移动端顶栏、侧栏开关状态 |
-| [`components/taskflow/Sidebar.tsx`](../components/taskflow/Sidebar.tsx) | `open` / `onNavigate` props |
-| [`components/taskflow/icons.tsx`](../components/taskflow/icons.tsx) | `IconMenu` |
-| [`components/taskflow/TasksApp.tsx`](../components/taskflow/TasksApp.tsx) | 顶栏 `topbar-primary` + `topbar-filters` 结构 |
-| [`components/taskflow/FilterBar.tsx`](../components/taskflow/FilterBar.tsx) | `filter-dropdown`、点击外部关闭 |
-| [`components/taskflow/TaskListView.tsx`](../components/taskflow/TaskListView.tsx) | `data-label` 卡片化 |
-| [`components/taskflow/MembersView.tsx`](../components/taskflow/MembersView.tsx) | `topbar--simple`、权限表滚动 |
-| [`app/(auth)/login/page.tsx`](../app/(auth)/login/page.tsx) | `login-page` / `login-card` |
+| [`app/taskflow.css`](../app/taskflow.css) | 断点、`@media`、卡片列表、看板纵向布局 |
+| [`app/(dashboard)/layout.tsx`](../app/(dashboard)/layout.tsx) | 移动端顶栏、侧栏开关 |
+| [`components/taskflow/Sidebar.tsx`](../components/taskflow/Sidebar.tsx) | 抽屉、`open` / `onNavigate`、账号菜单 |
+| [`components/taskflow/TaskListView.tsx`](../components/taskflow/TaskListView.tsx) | 桌面表格 + 移动卡片双布局 |
+| [`components/taskflow/KanbanView.tsx`](../components/taskflow/KanbanView.tsx) | 看板 DnD |
+| [`components/taskflow/FilterBar.tsx`](../components/taskflow/FilterBar.tsx) | 下拉、点击外部关闭 |
 
 ## 测试清单
 
@@ -77,31 +74,26 @@ Viewport 配置见 [`app/layout.tsx`](../app/layout.tsx)：`width=device-width, 
 
 Chrome DevTools → Toggle device toolbar
 
-推荐视口：
-
-- iPhone SE：375 × 667
-- iPhone 14 Pro：390 × 844
-- iPad：768 × 1024
+推荐视口：iPhone SE 375×667、iPhone 14 Pro 390×844、iPad 768×1024
 
 ### 必测路径
 
-1. **登录**：表单可输入、按钮可点、无横向溢出
-2. **侧栏**：汉堡打开/关闭，跳转成员页后抽屉关闭
-3. **看板**：左右滑动切换列，拖拽改状态/排序
-4. **列表**：卡片展示字段标签，点击进详情
+1. **登录**：表单可输入、无整页横向溢出
+2. **侧栏**：汉堡打开/关闭；账号菜单退出登录
+3. **看板**：纵向浏览四列，拖拽改状态
+4. **列表**：卡片展示，点击进详情
 5. **详情**：全屏面板，状态流转可换行
-6. **成员页**：成员卡片、权限矩阵可横滑
-7. **批量栏**：列表多选后出现，按钮可换行
-8. **横竖屏**：旋转后布局不崩溃
+6. **成员页**：loading、成员卡片、权限矩阵
+7. **批量栏**：admin/member 多选后出现（含「待开始」）
+8. **观察者**：无勾选框、无新建/编辑入口
 
 ### 验收标准
 
-- 页面级无意外横向滚动条（看板列、筛选 chips、权限表局部横滑除外）
-- 主要可点击区域触控目标 ≥ 44px（汉堡按钮）
+- **页面级无意外横向滚动条**（权限矩阵局部横滑除外）
+- 主要可点击区域触控目标 ≥ 44px（汉堡、侧栏账号）
 - `npm run build` 通过
 
 ## 已知限制
 
-- `/board`、`/tasks/[id]` 路由重定向至 `/`
-- Tablet 768–1023px 看板为 2 列网格，非横滑（介于桌面与手机之间）
-- 真实数据库模式暂未实现多项目表结构，仅 Mock 模式支持三项目切换
+- `/board`、`/tasks/[id]` 重定向至 `/`
+- Tablet 768–1023px 看板为 2 列网格
